@@ -1,0 +1,218 @@
+{
+  "id": "com.rankitzm.app",
+  "name": "RankIt ZM - School Class Manager",
+  "short_name": "RankIt ZM",
+  "description": "Zambian school class management system for managing learners, subjects, scores and parent communications - Offline-First Edition v1.2.0",
+  "lang": "en-ZM",
+  "dir": "ltr",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "minimal-ui", "standalone"],
+  "orientation": "portrait-primary",
+  "theme_color": "#aa3bff",
+  "background_color": "#ffffff",
+  "categories": ["education", "productivity"],
+  "prefer_related_applications": false,
+  "screenshots": [
+    {
+      "src": "/screenshots/home-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "RankIt ZM Dashboard on Mobile"
+    },
+    {
+      "src": "/screenshots/home-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "RankIt ZM Dashboard on Desktop"
+    },
+    {
+      "src": "/screenshots/classes-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "View and manage classes"
+    },
+    {
+      "src": "/screenshots/classes-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Classes management interface"
+    },
+    {
+      "src": "/screenshots/scores-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Enter and track scores"
+    },
+    {
+      "src": "/screenshots/scores-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Score entry and analytics"
+    }
+  ],
+  "icons": [
+    {
+      "src": "/icons/icon-48x48.png",
+      "sizes": "48x48",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "View Classes",
+      "short_name": "Classes",
+      "description": "View and manage all classes - Works offline",
+      "url": "/classes?source=shortcut",
+      "icons": [
+        { 
+          "src": "/icons/shortcut-classes-192x192.png", 
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Enter Test Scores",
+      "short_name": "Tests",
+      "description": "Enter and manage test scores - Syncs when online",
+      "url": "/tests?source=shortcut",
+      "icons": [
+        { 
+          "src": "/icons/shortcut-tests-192x192.png", 
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "View Reports",
+      "short_name": "Reports",
+      "description": "Generate and view reports from cached data",
+      "url": "/reports?source=shortcut",
+      "icons": [
+        { 
+          "src": "/icons/shortcut-reports-192x192.png", 
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "files": [
+        {
+          "name": "data",
+          "accept": [
+            "application/json",
+            ".json"
+          ]
+        }
+      ]
+    }
+  },
+  "file_handlers": [
+    {
+      "action": "/import",
+      "accept": {
+        "application/json": [".json"]
+      },
+      "icons": [
+        {
+          "src": "/icons/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "web+rankitzm",
+      "url": "/protocol?url=%s"
+    }
+  ],
+  "screenshots_version": "1.0",
+  "prefer_color_scheme": "light",
+  "iarc_rating_id": "",
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "capture_links": "existing-client-navigate",
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": ["navigate-new", "auto"]
+  },
+  "scope_extensions": [
+    {
+      "origin": "https://*.rankitzm.local"
+    }
+  ]
+}
