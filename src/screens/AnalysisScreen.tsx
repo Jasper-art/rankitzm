@@ -96,507 +96,6 @@ interface AnalyticsData {
   qualityPassBreakdown: QualityPassBreakdown[];
 }
 
-// ==================== PDF HTML Template ====================
-const generatePDFHTML = (
-  analytics: AnalyticsData,
-  selectedClass: string,
-  educationLevel: string,
-  term: string,
-  schoolName: string = "School Report",
-) => {
-  const reportDate = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <title>Analytics Report - ${selectedClass}</title>
-      <style>
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
-        }
-        
-        html, body {
-          width: 100%;
-          height: 100%;
-        }
-        
-        body {
-          font-family: 'Segoe UI', Arial, sans-serif;
-          color: #333;
-          line-height: 1.4;
-          font-size: 11px;
-          background: white;
-        }
-        
-        @page {
-          size: A4;
-          margin: 0.4in;
-        }
-        
-        .container {
-          width: 100%;
-          max-width: 8.5in;
-          margin: 0 auto;
-          padding: 0;
-        }
-        
-        /* Header */
-        .header {
-          background: linear-gradient(135deg, #059669 0%, #10B981 100%);
-          color: white;
-          padding: 14px 16px;
-          border-radius: 4px;
-          margin-bottom: 10px;
-          text-align: center;
-          box-shadow: 0 2px 8px rgba(5, 150, 105, 0.2);
-        }
-        
-        .header h1 {
-          font-size: 18px;
-          margin: 0 0 4px 0;
-          font-weight: 800;
-          letter-spacing: 0.5px;
-          text-transform: uppercase;
-        }
-        
-        .header .subtitle {
-          font-size: 11px;
-          opacity: 0.95;
-          margin: 0 0 3px 0;
-          font-weight: 600;
-        }
-        
-        .header .date {
-          font-size: 9px;
-          opacity: 0.85;
-          margin: 0;
-          font-weight: 500;
-        }
-        
-        /* School Info Grid */
-        .info-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr 1fr 1fr;
-          gap: 4px;
-          margin-bottom: 8px;
-          padding: 6px;
-          background: #f9fafb;
-          border-radius: 3px;
-          border-left: 3px solid #10B981;
-          text-align: center;
-        }
-        
-        .info-label {
-          font-size: 8px;
-          color: #6b7280;
-          text-transform: uppercase;
-          font-weight: 700;
-          margin-bottom: 2px;
-          letter-spacing: 0.3px;
-        }
-        
-        .info-value {
-          font-size: 14px;
-          font-weight: 700;
-          color: #1f2937;
-        }
-        
-        /* Section Title */
-        .section-title {
-          font-size: 11px;
-          font-weight: 700;
-          color: #1f2937;
-          margin-top: 6px;
-          margin-bottom: 4px;
-          padding-bottom: 2px;
-          border-bottom: 2px solid #10B981;
-          text-transform: uppercase;
-          letter-spacing: 0.4px;
-        }
-        
-        /* Summary Grid */
-        .summary-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr 1fr;
-          gap: 4px;
-          margin-bottom: 8px;
-        }
-        
-        .summary-card {
-          background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
-          padding: 8px 10px;
-          border-radius: 4px;
-          border-left: 3px solid #10B981;
-          border: 1px solid #d1fae5;
-          text-align: center;
-          box-shadow: 0 1px 3px rgba(5, 150, 105, 0.1);
-        }
-        
-        .card-label {
-          font-size: 8px;
-          color: #6b7280;
-          font-weight: 700;
-          margin-bottom: 2px;
-          text-transform: uppercase;
-        }
-        
-        .card-value {
-          font-size: 14px;
-          font-weight: 800;
-          color: #1f2937;
-          line-height: 1.2;
-        }
-        
-        .card-subtitle {
-          font-size: 8px;
-          color: #9ca3af;
-          margin-top: 2px;
-        }
-        
-        /* Gender Boxes */
-        .gender-boxes {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 4px;
-          margin-bottom: 8px;
-        }
-        
-        .gender-box {
-          background: #f9fafb;
-          padding: 8px 10px;
-          border-radius: 4px;
-          border: 1.5px solid #e5e7eb;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        }
-        
-        .gender-box h3 {
-          font-size: 11px;
-          font-weight: 700;
-          margin-bottom: 6px;
-          color: #059669;
-          text-align: center;
-          border-bottom: 2px solid #d1fae5;
-          padding-bottom: 4px;
-        }
-        
-        .gender-stat {
-          display: flex;
-          justify-content: space-between;
-          padding: 3px 0;
-          border-bottom: 1px solid #e5e7eb;
-          font-size: 9px;
-        }
-        
-        .gender-stat:last-child {
-          border-bottom: none;
-        }
-        
-        .stat-label {
-          color: #6b7280;
-          font-weight: 600;
-        }
-        
-        .stat-value {
-          font-weight: 700;
-          color: #10B981;
-        }
-        
-        /* Tables */
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-bottom: 8px;
-          font-size: 9px;
-          border: 1px solid #e5e7eb;
-          border-radius: 4px;
-          overflow: hidden;
-        }
-        
-        table thead {
-          background: linear-gradient(135deg, #059669 0%, #10B981 100%);
-        }
-        
-        table th {
-          padding: 6px 8px;
-          text-align: left;
-          font-weight: 700;
-          color: white;
-          border-bottom: 2px solid #059669;
-          font-size: 8.5px;
-          text-transform: uppercase;
-          letter-spacing: 0.3px;
-        }
-        
-        table td {
-          padding: 4px;
-          color: #374151;
-          border-bottom: 1px solid #e5e7eb;
-        }
-        
-        table tbody tr:nth-child(even) {
-          background: #f9fafb;
-        }
-        
-        .text-center {
-          text-align: center;
-        }
-        
-        .text-right {
-          text-align: right;
-        }
-        
-        /* Criteria Box */
-        .criteria-box {
-          background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
-          border: 1.5px solid #d1fae5;
-          padding: 10px 12px;
-          border-radius: 4px;
-          margin-top: 8px;
-          font-size: 9px;
-          box-shadow: 0 2px 4px rgba(5, 150, 105, 0.1);
-        }
-        
-        .criteria-box h3 {
-          font-size: 11px;
-          font-weight: 700;
-          color: #059669;
-          margin-bottom: 8px;
-          text-align: center;
-          text-transform: uppercase;
-          letter-spacing: 0.3px;
-        }
-        
-        .criteria-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 6px;
-        }
-        
-        .criteria-section h4 {
-          font-size: 9px;
-          font-weight: 700;
-          color: #059669;
-          margin-bottom: 3px;
-          text-align: center;
-        }
-        
-        .criteria-section ul {
-          list-style: none;
-          margin: 0;
-          padding: 0;
-        }
-        
-        .criteria-section li {
-          padding: 2px 0 2px 10px;
-          position: relative;
-          font-size: 8px;
-          color: #374151;
-        }
-        
-        .criteria-section li:before {
-          content: "•";
-          position: absolute;
-          left: 3px;
-          color: #10B981;
-          font-weight: bold;
-        }
-        
-        /* Footer */
-        .footer {
-          margin-top: 6px;
-          padding-top: 6px;
-          border-top: 1px solid #e5e7eb;
-          text-align: center;
-          font-size: 8px;
-          color: #6b7280;
-        }
-        
-        @media print {
-          body {
-            margin: 0;
-            padding: 0;
-            background: white;
-          }
-        }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <!-- Header -->
-        <div class="header">
-          <h1>${schoolName.toUpperCase()}</h1>
-          <p class="subtitle">📊 CLASS ANALYTICS REPORT</p>
-          <p class="subtitle" style="font-size: 9px; margin-top: 2px;">RankIT ZM - School Management System</p>
-          <p class="date">${reportDate}</p>
-        </div>
-        
-        <!-- School Info -->
-        <div class="info-grid">
-          <div>
-            <div class="info-label">Class</div>
-            <div class="info-value">${selectedClass}</div>
-          </div>
-          <div>
-            <div class="info-label">Level</div>
-            <div class="info-value">${educationLevel}</div>
-          </div>
-          <div>
-            <div class="info-label">Total Students</div>
-            <div class="info-value">${analytics.totalStudents}</div>
-          </div>
-          <div>
-            <div class="info-label">Term</div>
-            <div class="info-value">${term || "All"}</div>
-          </div>
-        </div>
-        
-        <!-- Overall Summary -->
-        <h2 class="section-title">OVERALL SUMMARY</h2>
-        <div class="summary-grid">
-          <div class="summary-card">
-            <div class="card-label">Present</div>
-            <div class="card-value">${analytics.studentsPresent}</div>
-            <div class="card-subtitle">Absent: ${analytics.studentsAbsent}</div>
-          </div>
-          <div class="summary-card">
-            <div class="card-label">Pass Rate</div>
-            <div class="card-value">${analytics.quantityPassRate.toFixed(1)}%</div>
-            <div class="card-subtitle">${analytics.totalPassed} passed</div>
-          </div>
-          <div class="summary-card">
-            <div class="card-label">Quality Pass</div>
-            <div class="card-value">${analytics.qualityPassRate.toFixed(1)}%</div>
-            <div class="card-subtitle">Grade 2+/4+</div>
-          </div>
-        </div>
-        
-        <!-- Gender Performance -->
-        <h2 class="section-title">GENDER PERFORMANCE</h2>
-        <div class="gender-boxes">
-          <div class="gender-box">
-            <h3>👨 Male (${analytics.maleCount})</h3>
-            <div class="gender-stat">
-              <span class="stat-label">Quality Pass</span>
-              <span class="stat-value">${analytics.maleCount > 0 ? ((analytics.maleQualityPass / analytics.maleCount) * 100).toFixed(1) : 0}%</span>
-            </div>
-            <div class="gender-stat">
-              <span class="stat-label">Quantity Pass</span>
-              <span class="stat-value">${analytics.maleCount > 0 ? ((analytics.maleQuantityPass / analytics.maleCount) * 100).toFixed(1) : 0}%</span>
-            </div>
-          </div>
-          <div class="gender-box">
-            <h3>👩 Female (${analytics.femaleCount})</h3>
-            <div class="gender-stat">
-              <span class="stat-label">Quality Pass</span>
-              <span class="stat-value">${analytics.femaleCount > 0 ? ((analytics.femaleQualityPass / analytics.femaleCount) * 100).toFixed(1) : 0}%</span>
-            </div>
-            <div class="gender-stat">
-              <span class="stat-label">Quantity Pass</span>
-              <span class="stat-value">${analytics.femaleCount > 0 ? ((analytics.femaleQuantityPass / analytics.femaleCount) * 100).toFixed(1) : 0}%</span>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Subject Analysis -->
-        <h2 class="section-title">SUBJECT ANALYSIS (Top 5)</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Subject</th>
-              <th class="text-center">Qty %</th>
-              <th class="text-center">Qty %</th>
-              <th class="text-center">High</th>
-              <th class="text-center">Low</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${analytics.subjectAnalysis
-              .slice(0, 5)
-              .map(
-                (s) => `
-              <tr>
-                <td>${s.name}</td>
-                <td class="text-center">${s.quantityPassRate.toFixed(0)}%</td>
-                <td class="text-center">${s.qualityPassRate.toFixed(0)}%</td>
-                <td class="text-right">${s.highestScore.toFixed(0)}</td>
-                <td class="text-right">${s.lowestScore.toFixed(0)}</td>
-              </tr>
-            `,
-              )
-              .join("")}
-          </tbody>
-        </table>
-        
-        <!-- Grade Distribution -->
-        <h2 class="section-title">GRADE DISTRIBUTION</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Grade</th>
-              <th class="text-center">Range</th>
-              <th class="text-center">Students</th>
-              <th class="text-center">%</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${analytics.qualityPassBreakdown
-              .map(
-                (item) => `
-              <tr>
-                <td><strong>${item.grade}</strong></td>
-                <td class="text-center">${item.range}</td>
-                <td class="text-center">${item.students}</td>
-                <td class="text-right"><strong>${item.percentage.toFixed(1)}%</strong></td>
-              </tr>
-            `,
-              )
-              .join("")}
-          </tbody>
-        </table>
-        
-        <!-- Criteria -->
-        <div class="criteria-box">
-          <h3>📋 PASSING CRITERIA (ZAMBIAN EDUCATION)</h3>
-          <div class="criteria-grid">
-            <div class="criteria-section">
-              <h4>PRIMARY (JSSLC)</h4>
-              <ul>
-                <li>Pass: ≥50 total marks</li>
-                <li>Quality: ≥60% avg</li>
-                <li>Grade 1: 75%+</li>
-                <li>Grade 2: 60-74%</li>
-              </ul>
-            </div>
-            <div class="criteria-section">
-              <h4>SECONDARY (School Cert)</h4>
-              <ul>
-                <li>Pass: 6+ subjects</li>
-                <li>Quality: ≥60% avg</li>
-                <li>Grade 1: 75%+</li>
-                <li>Grade 4: 60-64%</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Footer -->
-        <div class="footer">
-          <p>RankIT ZM | School Management System | For inquiries contact school administration</p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
-};
-
 // ==================== Main Component ====================
 
 export default function AnalyticsReportScreen() {
@@ -938,56 +437,274 @@ export default function AnalyticsReportScreen() {
 
   const exportToPDF = async () => {
     if (!analytics || !selectedClassEntity) return;
-
     setExporting(true);
 
     try {
       let schoolName = "School Report";
       try {
+        const schoolData = await db.getSchool(1);
         const cachedSettings = localStorage.getItem("rankitz-school-settings");
-        if (cachedSettings) {
+        if (schoolData?.schoolName) {
+          schoolName = schoolData.schoolName;
+        } else if (cachedSettings) {
           const parsed = JSON.parse(cachedSettings);
           schoolName = parsed.schoolName || "School Report";
         }
-      } catch (e) {
-        console.warn("Failed to get school name from cache:", e);
+      } catch (e) {}
+
+      const { default: jsPDF } = await import("jspdf");
+      const { default: autoTable } = await import("jspdf-autotable");
+
+      const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 15;
+      const contentWidth = pageWidth - margin * 2;
+
+      // ── HEADER ──
+      pdf.setFillColor(16, 185, 129);
+      pdf.roundedRect(margin, 12, contentWidth, 24, 2, 2, "F");
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(14);
+      pdf.text(schoolName.toUpperCase(), pageWidth / 2, 20, {
+        align: "center",
+      });
+      pdf.setFontSize(9);
+      pdf.text("CLASS ANALYTICS REPORT", pageWidth / 2, 26, {
+        align: "center",
+      });
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(7);
+      pdf.text(
+        `${selectedClassEntity.className} • ${currentLevel.toUpperCase()} • ${selectedTerm || "All Terms"} • ${new Date().toLocaleDateString()}`,
+        pageWidth / 2,
+        32,
+        { align: "center" },
+      );
+
+      // Zambia flag strip
+      const stripY = 38;
+      const pW = contentWidth / 7;
+      pdf.setFillColor(25, 138, 0);
+      pdf.rect(margin, stripY, pW * 4, 1.2, "F");
+      pdf.setFillColor(222, 32, 16);
+      pdf.rect(margin + pW * 4, stripY, pW, 1.2, "F");
+      pdf.setFillColor(0, 0, 0);
+      pdf.rect(margin + pW * 5, stripY, pW, 1.2, "F");
+      pdf.setFillColor(239, 125, 0);
+      pdf.rect(margin + pW * 6, stripY, pW, 1.2, "F");
+
+      let y = 46;
+
+      // ── SUMMARY STATS ──
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(17, 24, 39);
+      pdf.text("OVERALL SUMMARY", margin, y);
+      pdf.setDrawColor(229, 231, 235);
+      pdf.line(margin, y + 1.5, pageWidth - margin, y + 1.5);
+      y += 5;
+
+      const boxW = (contentWidth - 9) / 4;
+      const summaryItems = [
+        { l: "TOTAL STUDENTS", v: analytics.totalStudents.toString() },
+        { l: "PRESENT", v: analytics.studentsPresent.toString() },
+        { l: "QTY PASS RATE", v: `${analytics.quantityPassRate.toFixed(1)}%` },
+        { l: "QUALITY PASS", v: `${analytics.qualityPassRate.toFixed(1)}%` },
+      ];
+      summaryItems.forEach((item, i) => {
+        const bx = margin + i * (boxW + 3);
+        pdf.setFillColor(249, 250, 251);
+        pdf.setDrawColor(229, 231, 235);
+        pdf.roundedRect(bx, y, boxW, 14, 1.5, 1.5, "FD");
+        pdf.setFontSize(6);
+        pdf.setTextColor(107, 114, 128);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(item.l, bx + boxW / 2, y + 5, { align: "center" });
+        pdf.setFontSize(11);
+        pdf.setTextColor(5, 150, 105);
+        pdf.text(item.v, bx + boxW / 2, y + 11, { align: "center" });
+      });
+      y += 20;
+
+      // ── GENDER PERFORMANCE ──
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(17, 24, 39);
+      pdf.text("GENDER PERFORMANCE", margin, y);
+      pdf.setDrawColor(229, 231, 235);
+      pdf.line(margin, y + 1.5, pageWidth - margin, y + 1.5);
+      y += 4;
+
+      autoTable(pdf, {
+        startY: y,
+        margin: { left: margin, right: margin },
+        head: [
+          [
+            "Gender",
+            "Total",
+            "Qty Pass",
+            "Qty Pass %",
+            "Quality Pass",
+            "Quality Pass %",
+          ],
+        ],
+        body: [
+          [
+            "Male",
+            analytics.maleCount,
+            analytics.maleQuantityPass,
+            analytics.maleCount > 0
+              ? `${((analytics.maleQuantityPass / analytics.maleCount) * 100).toFixed(1)}%`
+              : "0%",
+            analytics.maleQualityPass,
+            analytics.maleCount > 0
+              ? `${((analytics.maleQualityPass / analytics.maleCount) * 100).toFixed(1)}%`
+              : "0%",
+          ],
+          [
+            "Female",
+            analytics.femaleCount,
+            analytics.femaleQuantityPass,
+            analytics.femaleCount > 0
+              ? `${((analytics.femaleQuantityPass / analytics.femaleCount) * 100).toFixed(1)}%`
+              : "0%",
+            analytics.femaleQualityPass,
+            analytics.femaleCount > 0
+              ? `${((analytics.femaleQualityPass / analytics.femaleCount) * 100).toFixed(1)}%`
+              : "0%",
+          ],
+        ],
+        theme: "grid",
+        headStyles: {
+          fillColor: [16, 185, 129],
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+          fontSize: 7,
+          halign: "center",
+        },
+        bodyStyles: { fontSize: 8, halign: "center", textColor: [17, 24, 39] },
+        columnStyles: { 0: { fontStyle: "bold", halign: "left" } },
+      });
+
+      y = (pdf as any).lastAutoTable.finalY + 8;
+
+      // ── SUBJECT ANALYSIS ──
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(17, 24, 39);
+      pdf.text("SUBJECT ANALYSIS", margin, y);
+      pdf.setDrawColor(229, 231, 235);
+      pdf.line(margin, y + 1.5, pageWidth - margin, y + 1.5);
+      y += 4;
+
+      autoTable(pdf, {
+        startY: y,
+        margin: { left: margin, right: margin },
+        head: [
+          ["Subject", "Qty Pass %", "Quality Pass %", "Highest", "Lowest"],
+        ],
+        body: analytics.subjectAnalysis.map((s) => [
+          s.name,
+          `${s.quantityPassRate.toFixed(0)}%`,
+          `${s.qualityPassRate.toFixed(0)}%`,
+          s.highestScore.toFixed(0),
+          s.lowestScore.toFixed(0),
+        ]),
+        theme: "grid",
+        headStyles: {
+          fillColor: [16, 185, 129],
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+          fontSize: 7,
+          halign: "center",
+        },
+        bodyStyles: { fontSize: 8, textColor: [17, 24, 39] },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: {
+          0: { halign: "left", fontStyle: "bold" },
+          1: { halign: "center" },
+          2: { halign: "center" },
+          3: { halign: "center" },
+          4: { halign: "center" },
+        },
+      });
+
+      y = (pdf as any).lastAutoTable.finalY + 8;
+
+      // ── GRADE DISTRIBUTION ──
+      if (y > pageHeight - 60) {
+        pdf.addPage();
+        y = margin;
       }
 
-      const script = document.createElement("script");
-      script.src =
-        "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
-      script.onload = () => {
-        const html = generatePDFHTML(
-          analytics,
-          selectedClassEntity!.className,
-          currentLevel,
-          selectedTerm || "All Terms",
-          schoolName,
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(17, 24, 39);
+      pdf.text("GRADE DISTRIBUTION", margin, y);
+      pdf.setDrawColor(229, 231, 235);
+      pdf.line(margin, y + 1.5, pageWidth - margin, y + 1.5);
+      y += 4;
+
+      autoTable(pdf, {
+        startY: y,
+        margin: { left: margin, right: margin },
+        head: [["Grade", "Range", "Students", "%"]],
+        body: analytics.qualityPassBreakdown.map((item) => [
+          item.grade,
+          item.range,
+          item.students,
+          `${item.percentage.toFixed(1)}%`,
+        ]),
+        theme: "grid",
+        headStyles: {
+          fillColor: [16, 185, 129],
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+          fontSize: 7,
+          halign: "center",
+        },
+        bodyStyles: { fontSize: 8, textColor: [17, 24, 39] },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: {
+          0: { halign: "left", fontStyle: "bold" },
+          1: { halign: "center" },
+          2: { halign: "center" },
+          3: { halign: "center" },
+        },
+      });
+
+      // ── FOOTER on every page ──
+      const totalPages = (pdf as any).internal.pages.length - 1;
+      for (let i = 1; i <= totalPages; i++) {
+        pdf.setPage(i);
+        pdf.setFontSize(7);
+        pdf.setTextColor(156, 163, 175);
+        pdf.setDrawColor(229, 231, 235);
+        (pdf as any).setLineDash([1, 1], 0);
+        pdf.line(margin, pageHeight - 12, pageWidth - margin, pageHeight - 12);
+        (pdf as any).setLineDash([], 0);
+        pdf.text(
+          "RankItZM Analytics Report • School Management System",
+          margin,
+          pageHeight - 8,
         );
+        pdf.text(
+          `Page ${i} of ${totalPages}`,
+          pageWidth - margin,
+          pageHeight - 8,
+          { align: "right" } as any,
+        );
+      }
 
-        const element = document.createElement("div");
-        element.innerHTML = html;
-
-        const filename = `Analytics_${selectedClassEntity!.className}_${new Date().getTime()}.pdf`;
-
-        (window as any)
-          .html2pdf()
-          .set({
-            margin: 0.3,
-            filename: filename,
-            image: { type: "jpeg", quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { format: "a4", orientation: "portrait" },
-          })
-          .from(element)
-          .save();
-
-        setExporting(false);
-      };
-
-      document.head.appendChild(script);
-    } catch (error) {
-      console.error("Error exporting PDF:", error);
+      pdf.save(
+        `Analytics_${selectedClassEntity.className}_${selectedTerm || "AllTerms"}.pdf`,
+      );
+    } catch (err) {
+      console.error("PDF export error:", err);
+      alert("Failed to export PDF: " + (err as any).message);
+    } finally {
       setExporting(false);
     }
   };

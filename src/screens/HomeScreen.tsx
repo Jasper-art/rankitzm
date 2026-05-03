@@ -642,24 +642,7 @@ export default function HomeScreen() {
             color="#3B82F6"
             t={t}
           />
-          {!isMobile && (
-            <>
-              <StatCard
-                label="Pass Rate"
-                value="—"
-                icon={Icons.reports}
-                color={t.orange}
-                t={t}
-              />
-              <StatCard
-                label="Scores"
-                value="—"
-                icon={Icons.scores}
-                color="#8B5CF6"
-                t={t}
-              />
-            </>
-          )}
+          {/* Pass Rate and Scores stats removed */}
         </div>
 
         {/* Classes Section (Mobile: Stacked Cards | Desktop: Table) */}

@@ -132,6 +132,8 @@ export interface SchoolEntity {
   id?: number;
   schoolName: string;
   schoolAddress: string;
+  schoolPhone?: string;
+  schoolEmail?: string;
   logoUri?: string;
 }
 
@@ -390,15 +392,15 @@ class RankItDatabase {
   }
 
   // SCHOOL SETTINGS
-  async updateSchoolSettings(settingsData: SchoolSettingsEntity) {
+async updateSchoolSettings(settingsData: SchoolSettingsEntity) {
     await this.ensureInit();
-    const key = `${settingsData.term.replace(' ', '')}_${settingsData.year}`;
+    const key = `${settingsData.term.replace(/\s+/g, '')}_${settingsData.year}`;
     return this.db!.put('schoolSettings', { ...settingsData, id: key } as any);
   }
 
-  async getSchoolSettings(term: string, year: number) {
+async getSchoolSettings(term: string, year: number) {
     await this.ensureInit();
-    const key = `${term.replace(' ', '')}_${year}`;
+    const key = `${term.replace(/\s+/g, '')}_${year}`;
     return this.db!.get('schoolSettings', key);
   }
 

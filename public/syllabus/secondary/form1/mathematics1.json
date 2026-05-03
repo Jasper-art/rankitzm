@@ -1,0 +1,239 @@
+{
+  "subject": "Mathematics",
+  "form": 1,
+  "level": "Ordinary Level Secondary Education",
+  "curriculum": "CDC Zambia 2024",
+  "topics": [
+    {
+      "id": 1,
+      "topic": "Numbers",
+      "subTopics": [
+        {
+          "name": "Classification of Numbers",
+          "specificCompetences": [
+            "Apply classification of numbers in real life context",
+            "Explore properties of different types of numbers: natural, whole, integers, prime, even, odd, rational, irrational, composite",
+            "Investigate factors and multiples of numbers",
+            "Find HCF and LCM using prime factorization and listing",
+            "Create number patterns, games and puzzles"
+          ],
+          "learningActivities": [
+            "Exploring properties of different types of numbers using materials, puzzles, number cards, games",
+            "Investigating factors and multiples of numbers",
+            "Investigating ways of finding HCF and LCM",
+            "Creating number patterns, games and puzzles"
+          ]
+        },
+        {
+          "name": "Combined Operations on Real Numbers",
+          "specificCompetences": [
+            "Apply combined operations on real numbers in real life situations",
+            "Solving real life situations using combined operations"
+          ],
+          "learningActivities": [
+            "Solving real life situations using combined operations on real numbers"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "topic": "Integers",
+      "subTopics": [
+        {
+          "name": "The Four Operations on Integers",
+          "specificCompetences": [
+            "Use integers in real life",
+            "Apply four operations (addition, subtraction, multiplication, division) on integers in real life situations"
+          ],
+          "learningActivities": [
+            "Exploring the application of the four operations on integers in real life situations",
+            "Examples: temperatures, bank account balances, share market, goal difference"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "topic": "Approximations and Estimation",
+      "subTopics": [
+        {
+          "name": "Approximation",
+          "specificCompetences": [
+            "Use approximation to make informed decisions in real life",
+            "Express measures to a required number of significant figures",
+            "Explore ways of expressing large and small measures",
+            "Use scientific notation"
+          ],
+          "learningActivities": [
+            "Exploring approximation in real life situations",
+            "Investigating significance of figures in measures",
+            "Expressing measures in decimal to required significant figures",
+            "Exploring scientific notation using calculators, activities, Bingo, card games"
+          ]
+        },
+        {
+          "name": "Estimations",
+          "specificCompetences": [
+            "Use estimation to make informed decisions in real life",
+            "Estimate measures and compare with actual measurements",
+            "Interpret absolute, relative and percentage errors and tolerance in real life"
+          ],
+          "learningActivities": [
+            "Estimating measures and comparing with actual measurements",
+            "Interpreting absolute, relative, percentage errors and tolerance in real life contexts"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "topic": "Sets",
+      "subTopics": [
+        {
+          "name": "Operations on Sets",
+          "specificCompetences": [
+            "Apply set operations in real life context",
+            "Create sets using information gathered by learners",
+            "Explore different forms of set representation: listing, number line, set builder notation, Venn diagram",
+            "Explore and interpret various single and combined set operations: intersection, union, complement, set difference",
+            "Represent combined operations on Venn diagrams (up to 3 sets)"
+          ],
+          "learningActivities": [
+            "Creating sets using numerical and descriptive information",
+            "Exploring different forms of set representation",
+            "Exploring set operations through games and real life activities",
+            "Representing combined operations on Venn diagrams using computers, paper, board, chalkboard (up to 3 sets)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "topic": "Algebra",
+      "subTopics": [
+        {
+          "name": "Algebraic Expressions",
+          "specificCompetences": [
+            "Apply algebraic expressions in real life",
+            "Explore and formulate algebraic expressions from everyday life activities",
+            "Distinguish variables and coefficients in algebraic expressions",
+            "Group like and unlike terms",
+            "Simplify algebraic expressions (addition, subtraction, division, multiplication)",
+            "Evaluate algebraic expressions by substituting numerical values"
+          ],
+          "learningActivities": [
+            "Exploring and formulating algebraic expressions from everyday life",
+            "Using letters to represent numbers: managing budgets, planning production, tracking expenses",
+            "Distinguishing variables and coefficients",
+            "Simplifying and evaluating algebraic expressions"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "topic": "Matrices",
+      "subTopics": [
+        {
+          "name": "Operations on Matrices",
+          "specificCompetences": [
+            "Apply matrices to real life situations",
+            "Formulate matrices from real life situations (payroll, shop records, distribution of resources)",
+            "Identify the order of matrices",
+            "Transpose matrices",
+            "Explore various types of matrices: singular, equal, identity matrices",
+            "Carry out operations on matrices: addition, subtraction, multiplication by scalar, matrix x matrix (up to 2x2)"
+          ],
+          "learningActivities": [
+            "Formulating matrices from real life situations",
+            "Identifying order of matrices",
+            "Transposing matrices",
+            "Performing operations on matrices in real life situations"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "topic": "Angles",
+      "subTopics": [
+        {
+          "name": "Angles Associated with Straight Lines",
+          "specificCompetences": [
+            "Use angles associated with straight lines in everyday life",
+            "Explore relationships between angles and straight lines",
+            "Distinguish angles: corresponding, vertically opposite, alternate, straight line angles",
+            "Use angles associated with straight lines in solving practical problems"
+          ],
+          "learningActivities": [
+            "Exploring relationships between angles and straight lines using geometrical instruments, geoboards, computer software",
+            "Distinguishing angles associated with parallel lines",
+            "Using angles in solving practical problems"
+          ]
+        },
+        {
+          "name": "Angle of Elevation and Depression",
+          "specificCompetences": [
+            "Use Angle of Elevation and Depression in everyday life",
+            "Explore angles of depression and elevation practically using real life situations",
+            "Distinguish angles of elevation and depression",
+            "Find the angle of depression and elevation"
+          ],
+          "learningActivities": [
+            "Exploring angles of depression and elevation practically",
+            "Distinguishing angles of elevation and depression in real life situations",
+            "Finding angles of depression and elevation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "topic": "Trigonometry",
+      "subTopics": [
+        {
+          "name": "Pythagoras Theorem",
+          "specificCompetences": [
+            "Use the Pythagoras theorem to solve problems in different contexts",
+            "Explore Pythagoras theorem through practical activities (a ladder against a wall, creating geoboard with squares and triangles)",
+            "Investigate sides of the right-angled triangle: adjacent sides and hypotenuse",
+            "Derive the Pythagoras theorem: a² + b² = c²",
+            "Solve real life problems using Pythagoras Theorem"
+          ],
+          "learningActivities": [
+            "Exploring Pythagoras theorem through practical activities",
+            "Investigating sides of the right-angled triangle",
+            "Deriving a² + b² = c²",
+            "Solving real life problems using Pythagoras Theorem"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "topic": "Statistics",
+      "subTopics": [
+        {
+          "name": "Statistical Presentations and Measures of Central Tendency",
+          "specificCompetences": [
+            "Apply statistics in making informed decisions in real life",
+            "Collect data from the environment using various ways",
+            "Distinguish between qualitative and quantitative data",
+            "Distinguish between discrete and continuous data",
+            "Represent data in different ways: tally charts, Histogram, frequency polygon, frequency table",
+            "Interpret data represented in different forms",
+            "Apply measures of central tendency: mean, mode and median of grouped data"
+          ],
+          "learningActivities": [
+            "Collecting data from environment: height, shoe sizes, favourite colour",
+            "Distinguishing qualitative and quantitative data",
+            "Distinguishing discrete and continuous data",
+            "Representing and interpreting data in different forms",
+            "Applying mean, mode and median to real life: test scores, average income"
+          ]
+        }
+      ]
+    }
+  ]
+}

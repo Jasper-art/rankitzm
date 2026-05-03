@@ -1,4 +1,5 @@
 import React, { Suspense, lazy } from "react";
+
 import {
   BrowserRouter as Router,
   Routes,
@@ -45,7 +46,7 @@ const EnterScoresBySubjectScreen = lazy(
 const ViewScoresScreen = lazy(() => import("./screens/ViewScoresScreen"));
 const ScoresTableScreen = lazy(() => import("./screens/ScoresTableScreen"));
 
-// Reports (ADDED PROGRESS REPORT HERE)
+// Reports
 const ReportsScreen = lazy(() => import("./screens/ReportsScreen"));
 const ProgressReportScreen = lazy(
   () => import("./screens/ProgressReportScreen"),
@@ -127,6 +128,13 @@ const PaymentFlutterwaveScreen = lazy(
   () => import("./screens/PaymentFlutterwaveScreen"),
 );
 const PaymentManualScreen = lazy(() => import("./screens/PaymentManualScreen"));
+
+// ========== AI TEACHING ASSISTANT TOOLS ==========
+const AIToolsHomeScreen = lazy(() => import("./screens/ai/AIToolsHomeScreen"));
+const LessonPlanScreen = lazy(() => import("./screens/ai/LessonPlanScreen"));
+const SchemesOfWorkScreen = lazy(() => import("./screens/ai/SchemesOfWorkScreen"));
+const RecordsOfWorkScreen = lazy(() => import("./screens/ai/RecordsOfWorkScreen"));
+const WeeklyForecastScreen = lazy(() => import("./screens/ai/WeeklyForecastScreen"));
 
 // Loading fallback
 function LoadingScreen() {
@@ -345,12 +353,53 @@ function AppRouterContent() {
               </ProtectedRoute>
             }
           />
-          {/* NEW ROUTE FOR PROGRESS REPORT SCREEN */}
           <Route
             path="/reports/progress"
             element={
               <ProtectedRoute>
                 <ProgressReportScreen />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* ========== AI TEACHING ASSISTANT ========== */}
+          <Route
+            path="/ai-tools"
+            element={
+              <ProtectedRoute>
+                <AIToolsHomeScreen />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ai-tools/lesson-plan"
+            element={
+              <ProtectedRoute>
+                <LessonPlanScreen />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ai-tools/schemes-of-work"
+            element={
+              <ProtectedRoute>
+                <SchemesOfWorkScreen />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ai-tools/records-of-work"
+            element={
+              <ProtectedRoute>
+                <RecordsOfWorkScreen />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ai-tools/weekly-forecast"
+            element={
+              <ProtectedRoute>
+                <WeeklyForecastScreen />
               </ProtectedRoute>
             }
           />
@@ -605,10 +654,6 @@ function AppRouterContent() {
   );
 }
 
-/**
- * AppRouter Component
- * Wraps the entire app with AuthProvider first, then ThemeProvider, then Router
- */
 export function AppRouter() {
   return (
     <Router>

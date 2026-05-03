@@ -13,8 +13,8 @@ import {
   getGradeLabel,
   getGradeStandard,
   getPerformanceMessage,
+  isPassingGrade,
 } from "../lib/grading";
-
 interface ScoreSummary {
   subjectName: string;
   scores: number[];
@@ -48,7 +48,7 @@ export default function LearnerStatementScreen() {
   const [selectedTerm, setSelectedTerm] = useState("");
   const [schoolName, setSchoolName] = useState("RankIT ZM School");
   const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
-
+  const [schoolSettings, setSchoolSettings] = useState<any>(null);
   const t: Theme = dark ? DARK : LIGHT;
 
   useEffect(() => {
@@ -62,6 +62,8 @@ export default function LearnerStatementScreen() {
 
   useEffect(() => {
     loadData();
+    const interval = setInterval(loadData, 2000); // Refresh every 2 seconds
+    return () => clearInterval(interval);
   }, [learnerId]);
 
   useEffect(() => {
@@ -77,13 +79,15 @@ export default function LearnerStatementScreen() {
       const [learnerData, scoresData, subjectsData, rankingsData] =
         await Promise.all([
           db.getLearner(id),
-          db.getScoresByLearner(id),
+          db.getAllScores(),
           db.getAllSubjects(),
           db.getAllClasses(),
         ]);
 
+      // Filter to only this learner's scores — same logic as BaseReportScreen
+      const learnerScores = scoresData.filter((s) => s.learnerId === id);
       setLearner(learnerData || null);
-      setScores(scoresData);
+      setScores(learnerScores);
       setSubjects(subjectsData);
 
       // Get class data
@@ -97,6 +101,18 @@ export default function LearnerStatementScreen() {
       const savedLogo = localStorage.getItem("logoUri");
       if (savedSchool) setSchoolName(savedSchool);
       if (savedLogo) setSchoolLogo(savedLogo);
+
+      // Load school settings for pass rates
+      const currentYear = new Date().getFullYear();
+      const termsToTry = ["Term1", "Term2", "Term3"];
+      let schoolSettings = null;
+      for (const term of termsToTry) {
+        schoolSettings = await db.getSchoolSettings(term, currentYear);
+        if (schoolSettings) break;
+      }
+      if (schoolSettings) {
+        setSchoolSettings(schoolSettings);
+      }
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
@@ -118,9 +134,12 @@ export default function LearnerStatementScreen() {
       learnerClassSubjectIds.has(s.subjectId),
     );
 
-    // Apply term filter if selected
+    // Apply term filter using same normalisation as BaseReportScreen
     const filteredScores = selectedTerm
-      ? classScores.filter((s) => s.term === selectedTerm)
+      ? classScores.filter(
+          (s) =>
+            s.term?.replace(/\s+/g, "") === selectedTerm.replace(/\s+/g, ""),
+        )
       : classScores;
 
     const grouped = new Map<number, TestScoreEntity[]>();
@@ -133,11 +152,14 @@ export default function LearnerStatementScreen() {
 
     const summary = new Map<number, ScoreSummary>();
     grouped.forEach((subjectScores, subjectId) => {
-      const subjectName =
-        learnerClassSubjects.find((s) => s.id === subjectId)?.subjectName ||
-        `Subject ${subjectId}`;
+      const subjectEntity = learnerClassSubjects.find(
+        (s) => s.id === subjectId,
+      );
+      const subjectName = subjectEntity?.subjectName || `Subject ${subjectId}`;
+      const maxMark = subjectEntity?.maxMark || 100;
       const scoresArray = subjectScores.map((s) => s.score);
-      const passCount = scoresArray.filter((s) => s >= 50).length;
+      const passThreshold = maxMark * getPassThresholdRate();
+      const passCount = scoresArray.filter((s) => s >= passThreshold).length;
 
       summary.set(subjectId, {
         subjectName,
@@ -157,6 +179,13 @@ export default function LearnerStatementScreen() {
 
   const getOverallAverage = () => {
     if (scoresBySubject.size === 0) return 0;
+    if (educationLevel.toLowerCase() === "primary") {
+      let total = 0;
+      scoresBySubject.forEach((summary) => {
+        total += summary.average;
+      });
+      return Math.round(total * 10) / 10;
+    }
     let total = 0;
     let count = 0;
     scoresBySubject.forEach((summary) => {
@@ -166,6 +195,20 @@ export default function LearnerStatementScreen() {
     return Math.round((total / count) * 10) / 10;
   };
 
+  // For primary: compute average percentage across subjects for grading
+  const getOverallAveragePercent = () => {
+    if (scoresBySubject.size === 0) return 0;
+    if (educationLevel.toLowerCase() !== "primary") return getOverallAverage();
+    let totalPct = 0;
+    let count = 0;
+    scoresBySubject.forEach((summary, subjectId) => {
+      const subjectEntity = subjects.find((s) => s.id === subjectId);
+      const maxMark = subjectEntity?.maxMark || 100;
+      totalPct += (summary.average / maxMark) * 100;
+      count += 1;
+    });
+    return Math.round((totalPct / count) * 10) / 10;
+  };
   const getPassRate = () => {
     const learnerClassSubjects = subjects.filter(
       (s) => s.classId === learner?.classId,
@@ -178,7 +221,13 @@ export default function LearnerStatementScreen() {
     );
 
     if (classScores.length === 0) return 0;
-    const passCount = classScores.filter((s) => s.score >= 50).length;
+    const passCount = classScores.filter((s) => {
+      const subjectEntity = learnerClassSubjects.find(
+        (sub) => sub.id === s.subjectId,
+      );
+      const maxMark = subjectEntity?.maxMark || 100;
+      return s.score >= maxMark * getPassThresholdRate();
+    }).length;
     return Math.round((passCount / classScores.length) * 100);
   };
 
@@ -192,27 +241,31 @@ export default function LearnerStatementScreen() {
     return scores.filter((s) => learnerClassSubjectIds.has(s.subjectId)).length;
   };
 
-  const getGrade = (score: number) => {
-    // Using Zambian grading system (1-9 for secondary)
-    // Assumes score is already a percentage (0-100)
-    return getGradeLabel(score, 100, "secondary");
+  const educationLevel = classData?.educationLevel || "secondary";
+
+  const getPassThresholdRate = () => {
+    if (educationLevel.toLowerCase() === "primary") {
+      return (schoolSettings?.primaryPassingRate || 50) / 100;
+    }
+    return (schoolSettings?.secondaryPassingRate || 40) / 100;
   };
 
-  const getRemark = (score: number) => {
-    // Using Zambian standard/descriptor
-    return getGradeStandard(score, 100, "secondary");
+  const getGrade = (score: number, maxMark: number = 100) => {
+    return getGradeLabel(score, maxMark, educationLevel);
+  };
+
+  const getRemark = (score: number, maxMark: number = 100) => {
+    return getGradeStandard(score, maxMark, educationLevel);
   };
 
   const getPerformanceMsg = () => {
     const avg = getOverallAverage();
-    // Using Zambian performance message with emoji
-    const fullMsg = getPerformanceMessage(avg, 100, "secondary");
-    // Return just the emoji and first part for compact display
+    const fullMsg = getPerformanceMessage(avg, 100, educationLevel);
     return fullMsg.split(" - ")[0];
   };
 
   const getPerformanceSummary = () => {
-    const avg = getOverallAverage();
+    const avg = getOverallAveragePercent();
     if (avg >= 75) return "Excellent Performance";
     if (avg >= 70) return "Very Good Performance";
     if (avg >= 65) return "Good Performance";
@@ -348,35 +401,293 @@ export default function LearnerStatementScreen() {
           </select>
 
           <button
-            onClick={() => {
-              // Load html2pdf library dynamically and export
-              const script = document.createElement("script");
-              script.src =
-                "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
-              script.onload = () => {
-                const element = document.querySelector(".printable-document");
-                if (element && learner) {
-                  const filename = `Statement_of_Results_${learner.name.replace(/\s+/g, "_")}.pdf`;
+            onClick={async () => {
+              if (!learner) return;
+              try {
+                const { default: jsPDF } = await import("jspdf");
+                const { default: autoTable } = await import("jspdf-autotable");
 
-                  const opt = {
-                    margin: 8,
-                    filename: filename,
-                    image: { type: "jpeg", quality: 0.98 },
-                    html2canvas: {
-                      scale: 2,
-                      backgroundColor: "#ffffff",
-                      useCORS: true,
-                      logging: false,
-                    },
-                    jsPDF: { format: "a4", orientation: "portrait" },
-                    pagebreak: { avoid: "css", mode: ["avoid-all"] },
-                  };
+                let exportSchoolName = schoolName;
+                try {
+                  const schoolData = await db.getSchool(1);
+                  const cached = localStorage.getItem(
+                    "rankitz-school-settings",
+                  );
+                  if (schoolData?.schoolName) {
+                    exportSchoolName = schoolData.schoolName;
+                  } else if (cached) {
+                    const parsed = JSON.parse(cached);
+                    exportSchoolName = parsed.schoolName || schoolName;
+                  }
+                } catch (e) {}
 
-                  // @ts-ignore
-                  html2pdf().set(opt).from(element).save();
+                const pdf = new jsPDF({
+                  orientation: "p",
+                  unit: "mm",
+                  format: "a4",
+                });
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const margin = 15;
+                const contentWidth = pageWidth - margin * 2;
+
+                // ── HEADER ──
+                pdf.setFillColor(16, 185, 129);
+                pdf.roundedRect(margin, 12, contentWidth, 24, 2, 2, "F");
+                pdf.setTextColor(255, 255, 255);
+                pdf.setFont("helvetica", "bold");
+                pdf.setFontSize(14);
+                pdf.text(exportSchoolName.toUpperCase(), pageWidth / 2, 20, {
+                  align: "center",
+                });
+                pdf.setFontSize(9);
+                pdf.text("STATEMENT OF RESULTS", pageWidth / 2, 26, {
+                  align: "center",
+                });
+                pdf.setFont("helvetica", "normal");
+                pdf.setFontSize(7);
+                pdf.text(
+                  `Official Academic Performance Report • ${selectedTerm || "All Terms Combined"}`,
+                  pageWidth / 2,
+                  32,
+                  { align: "center" },
+                );
+
+                // Zambia flag strip
+                const stripY = 38;
+                const pW = contentWidth / 7;
+                pdf.setFillColor(25, 138, 0);
+                pdf.rect(margin, stripY, pW * 4, 1.2, "F");
+                pdf.setFillColor(222, 32, 16);
+                pdf.rect(margin + pW * 4, stripY, pW, 1.2, "F");
+                pdf.setFillColor(0, 0, 0);
+                pdf.rect(margin + pW * 5, stripY, pW, 1.2, "F");
+                pdf.setFillColor(239, 125, 0);
+                pdf.rect(margin + pW * 6, stripY, pW, 1.2, "F");
+
+                let y = 46;
+
+                // ── LEARNER DETAILS ──
+                pdf.setFontSize(9);
+                pdf.setFont("helvetica", "bold");
+                pdf.setTextColor(17, 24, 39);
+                pdf.text("LEARNER DETAILS", margin, y);
+                pdf.setDrawColor(229, 231, 235);
+                pdf.line(margin, y + 1.5, pageWidth - margin, y + 1.5);
+                y += 5;
+
+                const detailBoxW = (contentWidth - 4) / 2;
+                const details = [
+                  { l: "LEARNER NAME", v: learner.name },
+                  { l: "CLASS", v: classData?.className || "N/A" },
+                  {
+                    l: "GENDER",
+                    v: learner.gender
+                      ? learner.gender.charAt(0).toUpperCase() +
+                        learner.gender.slice(1).toLowerCase()
+                      : "N/A",
+                  },
+                  { l: "EDUCATION LEVEL", v: educationLevel.toUpperCase() },
+                  { l: "EXAM / ID", v: learner.id?.toString() || "N/A" },
+                  {
+                    l: "ACADEMIC TERM",
+                    v: selectedTerm || "All Terms Combined",
+                  },
+                ];
+                details.forEach((d, i) => {
+                  const bx = margin + (i % 2) * (detailBoxW + 4);
+                  if (i % 2 === 0) {
+                    if (i > 0) y += 14;
+                    pdf.setFillColor(249, 250, 251);
+                    pdf.setDrawColor(229, 231, 235);
+                    pdf.roundedRect(bx, y, detailBoxW, 12, 1.5, 1.5, "FD");
+                    pdf.roundedRect(
+                      bx + detailBoxW + 4,
+                      y,
+                      detailBoxW,
+                      12,
+                      1.5,
+                      1.5,
+                      "FD",
+                    );
+                  }
+                  pdf.setFontSize(6);
+                  pdf.setTextColor(107, 114, 128);
+                  pdf.setFont("helvetica", "bold");
+                  pdf.text(d.l, bx + 4, y + 4.5);
+                  pdf.setFontSize(9);
+                  pdf.setTextColor(17, 24, 39);
+                  pdf.setFont("helvetica", "bold");
+                  pdf.text(d.v, bx + 4, y + 9.5);
+                });
+                y += 20;
+
+                // ── RESULTS TABLE ──
+                pdf.setFontSize(9);
+                pdf.setFont("helvetica", "bold");
+                pdf.setTextColor(17, 24, 39);
+                pdf.text("SUBJECT RESULTS", margin, y);
+                pdf.setDrawColor(229, 231, 235);
+                pdf.line(margin, y + 1.5, pageWidth - margin, y + 1.5);
+                y += 4;
+                const isPrimaryLevel =
+                  educationLevel.toLowerCase() === "primary";
+                const tableBody = Array.from(scoresBySubject.entries()).map(
+                  ([subjectId, summary]) => {
+                    const subjectEntity = subjects.find(
+                      (s) => s.id === subjectId,
+                    );
+                    const maxMark = subjectEntity?.maxMark || 100;
+                    return isPrimaryLevel
+                      ? [
+                          summary.subjectName,
+                          Math.round(summary.average).toString(),
+                          maxMark.toString(),
+                          getGrade(summary.average, maxMark),
+                          getRemark(summary.average, maxMark),
+                        ]
+                      : [
+                          summary.subjectName,
+                          `${summary.average}%`,
+                          getGrade(summary.average),
+                          getRemark(summary.average),
+                        ];
+                  },
+                );
+
+                autoTable(pdf, {
+                  startY: y,
+                  margin: { left: margin, right: margin },
+                  head: [
+                    educationLevel.toLowerCase() === "primary"
+                      ? ["Subject", "Score", "Out of", "Grade", "Remark"]
+                      : ["Subject", "Score (%)", "Grade", "Remark"],
+                  ],
+                  body: tableBody,
+                  theme: "grid",
+                  headStyles: {
+                    fillColor: [16, 185, 129],
+                    textColor: [255, 255, 255],
+                    fontStyle: "bold",
+                    fontSize: 8,
+                    halign: "center",
+                  },
+                  bodyStyles: { fontSize: 8, textColor: [17, 24, 39] },
+                  alternateRowStyles: { fillColor: [248, 250, 252] },
+                  columnStyles: {
+                    0: { halign: "left", fontStyle: "bold" },
+                    1: { halign: "center" },
+                    2: { halign: "center", fontStyle: "bold" },
+                    3: { halign: "left" },
+                  },
+                });
+
+                y = (pdf as any).lastAutoTable.finalY + 8;
+
+                // ── OVERALL SUMMARY ──
+                if (y > pageHeight - 50) {
+                  pdf.addPage();
+                  y = margin;
                 }
-              };
-              document.head.appendChild(script);
+
+                pdf.setFontSize(9);
+                pdf.setFont("helvetica", "bold");
+                pdf.setTextColor(17, 24, 39);
+                pdf.text("OVERALL PERFORMANCE SUMMARY", margin, y);
+                pdf.setDrawColor(229, 231, 235);
+                pdf.line(margin, y + 1.5, pageWidth - margin, y + 1.5);
+                y += 5;
+
+                const avg = getOverallAverage();
+                const summaryBoxW = (contentWidth - 9) / 4;
+                const summaryItems = [
+                  { l: "SUBJECTS TAKEN", v: scoresBySubject.size.toString() },
+                  {
+                    l: isPrimaryLevel ? "TOTAL MARKS" : "OVERALL AVERAGE",
+                    v: isPrimaryLevel ? avg.toString() : `${avg}%`,
+                  },
+                  {
+                    l: "OVERALL GRADE",
+                    v: getGrade(getOverallAveragePercent()),
+                  },
+                  { l: "PERFORMANCE", v: getPerformanceSummary() },
+                ];
+                summaryItems.forEach((item, i) => {
+                  const bx = margin + i * (summaryBoxW + 3);
+                  pdf.setFillColor(209, 250, 229);
+                  pdf.setDrawColor(16, 185, 129);
+                  pdf.roundedRect(bx, y, summaryBoxW, 14, 1.5, 1.5, "FD");
+                  pdf.setFontSize(6);
+                  pdf.setTextColor(107, 114, 128);
+                  pdf.setFont("helvetica", "bold");
+                  pdf.text(item.l, bx + summaryBoxW / 2, y + 5, {
+                    align: "center",
+                  });
+                  pdf.setFontSize(i === 3 ? 7 : 10);
+                  pdf.setTextColor(5, 150, 105);
+                  pdf.text(item.v, bx + summaryBoxW / 2, y + 11, {
+                    align: "center",
+                  });
+                });
+                y += 22;
+
+                // ── SIGNATURES ──
+                pdf.setDrawColor(17, 24, 39);
+                pdf.line(margin, y + 10, margin + 50, y + 10);
+                pdf.setFontSize(7);
+                pdf.setTextColor(107, 114, 128);
+                pdf.text("Teacher's Signature", margin, y + 14);
+
+                pdf.line(
+                  pageWidth - margin - 50,
+                  y + 10,
+                  pageWidth - margin,
+                  y + 10,
+                );
+                pdf.text(
+                  new Date().toLocaleDateString(),
+                  pageWidth - margin - 50,
+                  y + 14,
+                );
+                pdf.text("Date Issued", pageWidth - margin - 25, y + 18, {
+                  align: "center",
+                });
+
+                // ── FOOTER on every page ──
+                const totalPages = (pdf as any).internal.pages.length - 1;
+                for (let i = 1; i <= totalPages; i++) {
+                  pdf.setPage(i);
+                  pdf.setFontSize(7);
+                  pdf.setTextColor(156, 163, 175);
+                  pdf.setDrawColor(229, 231, 235);
+                  (pdf as any).setLineDash([1, 1], 0);
+                  pdf.line(
+                    margin,
+                    pageHeight - 12,
+                    pageWidth - margin,
+                    pageHeight - 12,
+                  );
+                  (pdf as any).setLineDash([], 0);
+                  pdf.text(
+                    "Generated by RankItZM School Management System",
+                    margin,
+                    pageHeight - 8,
+                  );
+                  pdf.text(
+                    `Page ${i} of ${totalPages}`,
+                    pageWidth - margin,
+                    pageHeight - 8,
+                    { align: "right" } as any,
+                  );
+                }
+
+                pdf.save(
+                  `Statement_${learner.name.replace(/\s+/g, "_")}_${selectedTerm || "AllTerms"}.pdf`,
+                );
+              } catch (err) {
+                console.error("PDF export error:", err);
+                alert("Failed to export PDF: " + (err as any).message);
+              }
             }}
             style={{
               padding: "8px 16px",
@@ -556,6 +867,16 @@ export default function LearnerStatementScreen() {
               <div>
                 <DetailRow label="Learner Name" value={learner.name} t={t} />
                 <DetailRow
+                  label="Gender"
+                  value={
+                    learner.gender
+                      ? learner.gender.charAt(0).toUpperCase() +
+                        learner.gender.slice(1).toLowerCase()
+                      : "N/A"
+                  }
+                  t={t}
+                />
+                <DetailRow
                   label="Exam/ID Number"
                   value={learner.id?.toString() || "N/A"}
                   t={t}
@@ -565,6 +886,14 @@ export default function LearnerStatementScreen() {
                 <DetailRow
                   label="Class"
                   value={classData?.className || "N/A"}
+                  t={t}
+                />
+                <DetailRow
+                  label="Education Level"
+                  value={
+                    educationLevel.charAt(0).toUpperCase() +
+                    educationLevel.slice(1)
+                  }
                   t={t}
                 />
                 <DetailRow
@@ -611,8 +940,20 @@ export default function LearnerStatementScreen() {
                         width: "15%",
                       }}
                     >
-                      Score (%)
+                      Score
                     </th>
+                    {educationLevel.toLowerCase() === "primary" && (
+                      <th
+                        style={{
+                          padding: "12px",
+                          border: `1px solid ${t.border}`,
+                          textAlign: "center",
+                          width: "12%",
+                        }}
+                      >
+                        Out of
+                      </th>
+                    )}
                     <th
                       style={{
                         padding: "12px",
@@ -652,50 +993,80 @@ export default function LearnerStatementScreen() {
                     </tr>
                   ) : (
                     Array.from(scoresBySubject.entries()).map(
-                      ([subjectId, summary]) => (
-                        <tr key={subjectId}>
-                          <td
-                            style={{
-                              padding: "8px",
-                              border: `1px solid ${t.border}`,
-                              fontWeight: 600,
-                            }}
-                          >
-                            {summary.subjectName}
-                          </td>
-                          <td
-                            style={{
-                              padding: "8px",
-                              border: `1px solid ${t.border}`,
-                              textAlign: "center",
-                              fontWeight: 700,
-                            }}
-                          >
-                            {summary.average}
-                          </td>
-                          <td
-                            style={{
-                              padding: "8px",
-                              border: `1px solid ${t.border}`,
-                              textAlign: "center",
-                              fontWeight: 700,
-                              color: summary.average >= 50 ? t.text : t.red,
-                            }}
-                          >
-                            {getGrade(summary.average)}
-                          </td>
-                          <td
-                            style={{
-                              padding: "8px",
-                              border: `1px solid ${t.border}`,
-                              textAlign: "left",
-                              color: t.textMuted,
-                            }}
-                          >
-                            {getRemark(summary.average)}
-                          </td>
-                        </tr>
-                      ),
+                      ([subjectId, summary]) => {
+                        const subjectEntity = subjects.find(
+                          (s) => s.id === subjectId,
+                        );
+                        const maxMark = subjectEntity?.maxMark || 100;
+                        const isPrimaryLevel =
+                          educationLevel.toLowerCase() === "primary";
+                        const displayScore = isPrimaryLevel
+                          ? summary.average
+                          : summary.average;
+                        const gradeColor =
+                          summary.average >= maxMark * getPassThresholdRate()
+                            ? t.text
+                            : t.red;
+                        return (
+                          <tr key={subjectId}>
+                            <td
+                              style={{
+                                padding: "8px",
+                                border: `1px solid ${t.border}`,
+                                fontWeight: 600,
+                              }}
+                            >
+                              {summary.subjectName}
+                            </td>
+                            <td
+                              style={{
+                                padding: "8px",
+                                border: `1px solid ${t.border}`,
+                                textAlign: "center",
+                                fontWeight: 700,
+                              }}
+                            >
+                              {isPrimaryLevel
+                                ? Math.round(summary.average)
+                                : `${summary.average}%`}
+                            </td>
+                            {isPrimaryLevel && (
+                              <td
+                                style={{
+                                  padding: "8px",
+                                  border: `1px solid ${t.border}`,
+                                  textAlign: "center",
+                                  fontWeight: 600,
+                                  color: t.textMuted,
+                                }}
+                              >
+                                {maxMark}
+                              </td>
+                            )}
+                            <td
+                              style={{
+                                padding: "8px",
+                                border: `1px solid ${t.border}`,
+                                textAlign: "center",
+                                fontWeight: 700,
+                                color: gradeColor,
+                              }}
+                            >
+                              {getGrade(summary.average, maxMark)}
+                            </td>
+                            <td
+                              style={{
+                                padding: "8px",
+                                border: `1px solid ${t.border}`,
+                                textAlign: "left",
+                                color: t.textMuted,
+                              }}
+                            >
+                              {getRemark(summary.average, maxMark)}
+                            </td>
+                          </tr>
+                        );
+                      },
                     )
                   )}
                 </tbody>
@@ -723,13 +1094,21 @@ export default function LearnerStatementScreen() {
                 t={t}
               />
               <SummaryMetric
-                label="Overall Average"
-                value={`${getOverallAverage()}%`}
+                label={
+                  educationLevel.toLowerCase() === "primary"
+                    ? "Total Marks"
+                    : "Overall Average"
+                }
+                value={
+                  educationLevel.toLowerCase() === "primary"
+                    ? getOverallAverage().toString()
+                    : `${getOverallAverage()}%`
+                }
                 t={t}
               />
               <SummaryMetric
                 label="Overall Grade"
-                value={getGrade(getOverallAverage())}
+                value={getGrade(getOverallAveragePercent())}
                 t={t}
               />
               <SummaryMetric

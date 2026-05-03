@@ -3,7 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { db, ClassEntity, LearnerEntity, SubjectEntity } from "../db";
 import { getGradeLabel } from "../lib/grading";
 import { LIGHT, DARK, Theme, ZAMBIA_FLAG } from "../styles/rankitz-colors";
-
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 // Mobile-responsive hook
 const useResponsive = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -225,8 +226,9 @@ export default function BaseReportScreen() {
             (s) =>
               s.learnerId === learner.id &&
               s.testType?.toLowerCase() === normalizedTestType &&
-              s.term === routeTerm &&
-              s.year === parseInt(routeYear || "2025"),
+              s.term?.replace(/\s+/g, "") === routeTerm?.replace(/\s+/g, "") &&
+              s.year ===
+                parseInt(routeYear || String(new Date().getFullYear())),
           );
 
           learnerScores.forEach((score) => {
@@ -556,452 +558,337 @@ export default function BaseReportScreen() {
     }
   };
 
-  // Export to PDF (Using jsPDF from CDN)
   const exportToPDF = async () => {
     try {
       setExporting(true);
 
-      // Load jsPDF and autotable from CDN if not already loaded
-      if (!(window as any).jspdf) {
-        const jsPdfScript = document.createElement("script");
-        jsPdfScript.src =
-          "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
-        jsPdfScript.async = true;
+      let finalSchoolName = "SCHOOL REPORT";
+      try {
+        if (schoolSettings?.schoolName) {
+          finalSchoolName = schoolSettings.schoolName;
+        } else {
+          const cachedSettings = localStorage.getItem(
+            "rankitz-school-settings",
+          );
+          if (cachedSettings) {
+            const parsed = JSON.parse(cachedSettings);
+            if (parsed.schoolName) finalSchoolName = parsed.schoolName;
+          }
+        }
+      } catch (e) {}
 
-        jsPdfScript.onload = () => {
-          // Wait a tick for jsPDF to be available
-          setTimeout(() => {
-            // Load autotable
-            const autoTableScript = document.createElement("script");
-            autoTableScript.src =
-              "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js";
-            autoTableScript.async = false;
+      const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
 
-            autoTableScript.onload = () => {
-              // Both libraries are now loaded, run export
-              performPdfExport();
-            };
+      pdf.setFillColor(16, 185, 129);
+      pdf.roundedRect(15, 15, pageWidth - 30, 22, 2, 2, "F");
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(14);
+      pdf.text(finalSchoolName.toUpperCase(), pageWidth / 2, 22, {
+        align: "center",
+      });
+      pdf.setFontSize(10);
+      pdf.text("END OF TERM REPORT - MARK SCHEDULE", pageWidth / 2, 28, {
+        align: "center",
+      });
+      pdf.setFontSize(7);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(
+        `${classData?.className?.toUpperCase()} • TERM ${routeTerm} • ${routeYear} • ${isPrimary ? "PRIMARY" : "SECONDARY"} LEVEL`,
+        pageWidth / 2,
+        33,
+        { align: "center" },
+      );
 
-            autoTableScript.onerror = () => {
-              alert("Failed to load autotable library from CDN");
-              setExporting(false);
-            };
+      const stripY = 38.5;
+      const totalW = pageWidth - 30;
+      const pW = totalW / 7;
+      pdf.setFillColor(25, 138, 0);
+      pdf.rect(15, stripY, pW * 4, 1.2, "F");
+      pdf.setFillColor(222, 32, 16);
+      pdf.rect(15 + pW * 4, stripY, pW, 1.2, "F");
+      pdf.setFillColor(0, 0, 0);
+      pdf.rect(15 + pW * 5, stripY, pW, 1.2, "F");
+      pdf.setFillColor(239, 125, 0);
+      pdf.rect(15 + pW * 6, stripY, pW, 1.2, "F");
 
-            document.body.appendChild(autoTableScript);
-          }, 50);
-        };
+      let metaY = 46;
+      pdf.setFontSize(8);
+      pdf.setTextColor(75, 85, 99);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Generated:", 15, metaY);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(17, 24, 39);
+      pdf.text(
+        new Date().toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        }),
+        38,
+        metaY,
+      );
+      metaY += 5;
+      pdf.setTextColor(75, 85, 99);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Class:", 15, metaY);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(17, 24, 39);
+      pdf.text(classData?.className || "-", 38, metaY);
+      metaY += 5;
+      pdf.setTextColor(75, 85, 99);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Total Learners:", 15, metaY);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(17, 24, 39);
+      pdf.text(learners.length.toString(), 38, metaY);
 
-        jsPdfScript.onerror = () => {
-          alert("Failed to load jsPDF library from CDN");
-          setExporting(false);
-        };
+      let metaY2 = 46;
+      const col2X = pageWidth / 2;
+      pdf.setTextColor(75, 85, 99);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Education Level:", col2X, metaY2);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(17, 24, 39);
+      pdf.text(isPrimary ? "Primary" : "Secondary", col2X + 28, metaY2);
+      metaY2 += 5;
+      pdf.setTextColor(75, 85, 99);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Total Subjects:", col2X, metaY2);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(17, 24, 39);
+      pdf.text(subjects.length.toString(), col2X + 28, metaY2);
+      metaY2 += 5;
+      pdf.setTextColor(75, 85, 99);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Ranking Method:", col2X, metaY2);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(17, 24, 39);
+      pdf.text(rankingMethod, col2X + 28, metaY2);
 
-        document.body.appendChild(jsPdfScript);
-      } else {
-        performPdfExport();
-      }
+      let currentY = 60;
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(17, 24, 39);
+      pdf.text("CLASS PERFORMANCE SUMMARY", 15, currentY);
+      pdf.setDrawColor(229, 231, 235);
+      pdf.line(15, currentY + 1.5, pageWidth - 15, currentY + 1.5);
+      currentY += 5;
 
-      function performPdfExport() {
-        try {
-          const jspdf = (window as any).jspdf;
+      const statW = (pageWidth - 30 - 12) / 4;
+      const statsArr = [
+        { l: "AVG SCORE", v: `${stats.avgScore}%` },
+        { l: "PASS RATE", v: `${stats.passRate}%` },
+        { l: "HIGHEST SCORE", v: `${stats.highestScore}%` },
+        { l: "LOWEST SCORE", v: `${stats.lowestScore}%` },
+      ];
+      statsArr.forEach((s, i) => {
+        const bx = 15 + i * (statW + 4);
+        pdf.setFillColor(249, 250, 251);
+        pdf.setDrawColor(229, 231, 235);
+        pdf.roundedRect(bx, currentY, statW, 12, 1.5, 1.5, "FD");
+        pdf.setFontSize(6.5);
+        pdf.setTextColor(75, 85, 99);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(s.l, bx + statW / 2, currentY + 4.5, { align: "center" });
+        pdf.setFontSize(10);
+        pdf.setTextColor(5, 150, 105);
+        pdf.text(s.v, bx + statW / 2, currentY + 9.5, { align: "center" });
+      });
+      currentY += 18;
 
-          // Portrait A4 Paper
-          const pdf = new jspdf.jsPDF({
-            orientation: "p",
-            unit: "mm",
-            format: "a4",
-          });
-          const pageWidth = pdf.internal.pageSize.getWidth();
-          const pageHeight = pdf.internal.pageSize.getHeight();
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(17, 24, 39);
+      pdf.text("SUBJECT PERFORMANCE (PASS %)", 15, currentY);
+      pdf.setDrawColor(229, 231, 235);
+      pdf.line(15, currentY + 1.5, pageWidth - 15, currentY + 1.5);
+      currentY += 5;
 
-          // --- Header Box ---
-          pdf.setFillColor(16, 185, 129); // Accent Green
-          pdf.roundedRect(15, 15, pageWidth - 30, 22, 2, 2, "F");
+      const subsPerRow = Math.min(subjects.length, 8);
+      const subGap = 2.5;
+      const subW = (pageWidth - 30 - (subsPerRow - 1) * subGap) / subsPerRow;
+      const subH = 15;
+      subjects.forEach((sub, i) => {
+        const bx = 15 + (i % subsPerRow) * (subW + subGap);
+        pdf.setFillColor(249, 250, 251);
+        pdf.setDrawColor(229, 231, 235);
+        pdf.roundedRect(bx, currentY, subW, subH, 1.5, 1.5, "FD");
+        let sName = sub.subjectName;
+        if (sName.length > 12) sName = sName.substring(0, 11) + "…";
+        pdf.setFontSize(6);
+        pdf.setTextColor(17, 24, 39);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(sName, bx + subW / 2, currentY + 3.5, { align: "center" });
+        const passP = subjectPassRates[sub.id!] || 0;
+        pdf.setFontSize(9);
+        pdf.setTextColor(5, 150, 105);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(`${passP}%`, bx + subW / 2, currentY + 8, { align: "center" });
+        pdf.setFontSize(5);
+        pdf.setTextColor(75, 85, 99);
+        pdf.setFont("helvetica", "normal");
+        const passMark = isPrimary
+          ? (sub.maxMark || 100) * 0.5
+          : (sub.maxMark || 100) * 0.4;
+        pdf.text(
+          `Pass: ${Math.round(passMark)}`,
+          bx + subW / 2,
+          currentY + 12,
+          { align: "center" },
+        );
+      });
+      currentY += subH + 8;
 
-          pdf.setTextColor(255, 255, 255);
-          pdf.setFont(undefined, "bold");
-          pdf.setFontSize(14);
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(17, 24, 39);
+      pdf.text("DETAILED LEARNER RESULTS", 15, currentY);
+      pdf.setDrawColor(229, 231, 235);
+      pdf.line(15, currentY + 1.5, pageWidth - 15, currentY + 1.5);
+      currentY += 4;
 
-          // Pull school name from settings with proper priority
-          let finalSchoolName = "SCHOOL REPORT";
+      const headers = [
+        "Pos",
+        "Name",
+        "Sex",
+        ...subjects.map((s) => s.subjectName.substring(0, 6)),
+        isPrimary ? "Total" : "Pts",
+      ];
 
-          try {
-            // Try to get from database settings first
-            if (schoolSettings?.schoolName) {
-              finalSchoolName = schoolSettings.schoolName;
-            } else {
-              // Fall back to cached settings
-              const cachedSettings = localStorage.getItem(
-                "rankitz-school-settings",
-              );
-              if (cachedSettings) {
-                const parsed = JSON.parse(cachedSettings);
-                if (parsed.schoolName) {
-                  finalSchoolName = parsed.schoolName;
+      const tableBody = totals
+        .slice(0, rowsToShow)
+        .map((entry: RankedLearner) => {
+          const rank = rankedMap.get(entry.learnerId) || "-";
+          const learnerDetails = learners.find((l) => l.id === entry.learnerId);
+          const gender =
+            learnerDetails?.gender === "M"
+              ? "M"
+              : learnerDetails?.gender === "F"
+                ? "F"
+                : "-";
+          return [
+            rank.toString(),
+            entry.name.length > 18
+              ? entry.name.substring(0, 16) + "…"
+              : entry.name,
+            gender,
+            ...subjects.map((subject: SubjectEntity) => {
+              if (!subject.id) return "-";
+              const score = entry.scores[subject.id] || 0;
+              return score === 0 ? "-" : score.toString();
+            }),
+            entry.total === 999 ? "DNQ" : entry.total.toString(),
+          ];
+        });
+
+      autoTable(pdf, {
+        startY: currentY,
+        margin: { left: 15, right: 15, bottom: 20 },
+        head: isPrimary
+          ? [
+              headers,
+              [
+                "Max",
+                "Marks",
+                "",
+                ...subjects.map((s) => (s.maxMark || 100).toString()),
+                subjects
+                  .reduce((sum, s) => sum + (s.maxMark || 100), 0)
+                  .toString(),
+              ],
+            ]
+          : [headers],
+        body: tableBody,
+        theme: "grid",
+        headStyles: {
+          fillColor: [16, 185, 129],
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+          halign: "center",
+          fontSize: 7,
+          lineWidth: 0.1,
+          lineColor: [5, 150, 105],
+        },
+        bodyStyles: {
+          fontSize: 7,
+          textColor: [17, 24, 39],
+          lineColor: [229, 231, 235],
+        },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: {
+          0: { halign: "center", fontStyle: "bold", cellWidth: 8 },
+          1: { halign: "left", fontStyle: "bold", cellWidth: 35 },
+          2: { halign: "center", textColor: [107, 114, 128], cellWidth: 8 },
+          [headers.length - 1]: {
+            halign: "center",
+            fontStyle: "bold",
+            fillColor: [209, 250, 229],
+            textColor: [5, 150, 105],
+            cellWidth: 10,
+          },
+        },
+        didParseCell: function (data: any) {
+          if (
+            data.section === "body" &&
+            data.column.index >= 3 &&
+            data.column.index < headers.length - 1
+          ) {
+            data.cell.styles.halign = "center";
+            const scoreStr = data.cell.raw;
+            if (scoreStr !== "-" && scoreStr !== "DNQ") {
+              const score = parseInt(scoreStr, 10);
+              const subject = subjects[data.column.index - 3];
+              if (subject) {
+                const maxM = subject.maxMark || 100;
+                if (score < (isPrimary ? maxM * 0.5 : maxM * 0.4)) {
+                  data.cell.styles.textColor = [222, 32, 16];
                 }
               }
             }
-          } catch (e) {
-            console.warn("Failed to get school name from settings:", e);
           }
-          pdf.text(finalSchoolName.toUpperCase(), pageWidth / 2, 22, {
-            align: "center",
-          });
-
-          pdf.setFontSize(10);
-          pdf.text("END OF TERM REPORT - MARK SCHEDULE", pageWidth / 2, 28, {
-            align: "center",
-          });
-
-          pdf.setFontSize(7);
-          pdf.setFont(undefined, "normal");
-          pdf.text(
-            `${classData?.className?.toUpperCase()} • TERM ${routeTerm} • ${routeYear} • ${isPrimary ? "PRIMARY" : "SECONDARY"} LEVEL`,
-            pageWidth / 2,
-            33,
-            { align: "center" },
-          );
-
-          // --- Zambia Flag Accent Strip ---
-          const stripY = 38.5;
-          const totalW = pageWidth - 30;
-          const pW = totalW / 7; // 4+1+1+1 = 7 parts
-          pdf.setFillColor(25, 138, 0);
-          pdf.rect(15, stripY, pW * 4, 1.2, "F"); // Green
-          pdf.setFillColor(222, 32, 16);
-          pdf.rect(15 + pW * 4, stripY, pW, 1.2, "F"); // Red
-          pdf.setFillColor(0, 0, 0);
-          pdf.rect(15 + pW * 5, stripY, pW, 1.2, "F"); // Black
-          pdf.setFillColor(239, 125, 0);
-          pdf.rect(15 + pW * 6, stripY, pW, 1.2, "F"); // Orange
-
-          // --- Metadata Section ---
-          let metaY = 46;
-          pdf.setTextColor(75, 85, 99); // textMuted
-          pdf.setFontSize(8);
-
-          // Col 1
-          pdf.setFont(undefined, "bold");
-          pdf.text("Generated:", 15, metaY);
-          pdf.setFont(undefined, "normal");
-          pdf.setTextColor(17, 24, 39);
-          pdf.text(
-            new Date().toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            }),
-            38,
-            metaY,
-          );
-
-          metaY += 5;
-          pdf.setTextColor(75, 85, 99);
-          pdf.setFont(undefined, "bold");
-          pdf.text("Class:", 15, metaY);
-          pdf.setFont(undefined, "normal");
-          pdf.setTextColor(17, 24, 39);
-          pdf.text(classData?.className || "-", 38, metaY);
-
-          metaY += 5;
-          pdf.setTextColor(75, 85, 99);
-          pdf.setFont(undefined, "bold");
-          pdf.text("Total Learners:", 15, metaY);
-          pdf.setFont(undefined, "normal");
-          pdf.setTextColor(17, 24, 39);
-          pdf.text(learners.length.toString(), 38, metaY);
-
-          // Col 2
-          let metaY2 = 46;
-          const col2X = pageWidth / 2;
-          pdf.setTextColor(75, 85, 99);
-          pdf.setFont(undefined, "bold");
-          pdf.text("Education Level:", col2X, metaY2);
-          pdf.setFont(undefined, "normal");
-          pdf.setTextColor(17, 24, 39);
-          pdf.text(isPrimary ? "Primary" : "Secondary", col2X + 28, metaY2);
-
-          metaY2 += 5;
-          pdf.setTextColor(75, 85, 99);
-          pdf.setFont(undefined, "bold");
-          pdf.text("Total Subjects:", col2X, metaY2);
-          pdf.setFont(undefined, "normal");
-          pdf.setTextColor(17, 24, 39);
-          pdf.text(subjects.length.toString(), col2X + 28, metaY2);
-
-          metaY2 += 5;
-          pdf.setTextColor(75, 85, 99);
-          pdf.setFont(undefined, "bold");
-          pdf.text("Ranking Method:", col2X, metaY2);
-          pdf.setFont(undefined, "normal");
-          pdf.setTextColor(17, 24, 39);
-          pdf.text(rankingMethod, col2X + 28, metaY2);
-
-          // --- Summary Stats Section ---
-          let currentY = 60;
-          pdf.setFontSize(9);
-          pdf.setFont(undefined, "bold");
-          pdf.setTextColor(17, 24, 39);
-          pdf.text("CLASS PERFORMANCE SUMMARY", 15, currentY);
-          pdf.setDrawColor(229, 231, 235);
-          pdf.line(15, currentY + 1.5, pageWidth - 15, currentY + 1.5);
-          currentY += 5;
-
-          const statW = (pageWidth - 30 - 12) / 4; // 4 boxes, gap=4mm
-          const statsArr = [
-            { l: "AVG SCORE", v: `${stats.avgScore}%` },
-            { l: "PASS RATE", v: `${stats.passRate}%` },
-            { l: "HIGHEST SCORE", v: `${stats.highestScore}%` },
-            { l: "LOWEST SCORE", v: `${stats.lowestScore}%` },
-          ];
-
-          statsArr.forEach((s, i) => {
-            const bx = 15 + i * (statW + 4);
-            pdf.setFillColor(249, 250, 251);
-            pdf.setDrawColor(229, 231, 235);
-            pdf.roundedRect(bx, currentY, statW, 12, 1.5, 1.5, "FD");
-
-            pdf.setFontSize(6.5);
-            pdf.setTextColor(75, 85, 99);
-            pdf.setFont(undefined, "bold");
-            pdf.text(s.l, bx + statW / 2, currentY + 4.5, { align: "center" });
-
-            pdf.setFontSize(10);
-            pdf.setTextColor(5, 150, 105); // accentDark
-            pdf.text(s.v, bx + statW / 2, currentY + 9.5, { align: "center" });
-          });
-          currentY += 18;
-
-          // --- Subject Pass Rates Section ---
-          pdf.setFontSize(9);
-          pdf.setFont(undefined, "bold");
-          pdf.setTextColor(17, 24, 39);
-          pdf.text("SUBJECT PERFORMANCE (PASS %)", 15, currentY);
-          pdf.setDrawColor(229, 231, 235);
-          pdf.line(15, currentY + 1.5, pageWidth - 15, currentY + 1.5);
-          currentY += 5;
-
-          // Dynamically fit up to 8 subjects in one row
-          const subsPerRow = Math.min(subjects.length, 8);
-          const subGap = 2.5;
-          const totalAvailableWidth = pageWidth - 30; // 15mm margins on each side
-          const subW =
-            (totalAvailableWidth - (subsPerRow - 1) * subGap) / subsPerRow;
-          const subH = 15;
-
-          subjects.forEach((sub, i) => {
-            const col = i % subsPerRow;
-            const bx = 15 + col * (subW + subGap);
-            const by = currentY;
-
-            pdf.setFillColor(249, 250, 251);
-            pdf.setDrawColor(229, 231, 235);
-            pdf.roundedRect(bx, by, subW, subH, 1.5, 1.5, "FD");
-
-            // Subject name - truncate to fit box width
-            let sName = sub.subjectName;
-            if (sName.length > 12) sName = sName.substring(0, 11) + "…";
-
-            pdf.setFontSize(6);
-            pdf.setTextColor(17, 24, 39);
-            pdf.setFont(undefined, "bold");
-            pdf.text(sName, bx + subW / 2, by + 3.5, { align: "center" });
-
-            // Pass percentage
-            const passP = subjectPassRates[sub.id!] || 0;
-            pdf.setFontSize(9);
-            pdf.setTextColor(5, 150, 105);
-            pdf.setFont(undefined, "bold");
-            pdf.text(`${passP}%`, bx + subW / 2, by + 8, { align: "center" });
-
-            // Pass mark
-            pdf.setFontSize(5);
-            pdf.setTextColor(75, 85, 99);
-            pdf.setFont(undefined, "normal");
-            const passMark = isPrimary
-              ? (sub.maxMark || 100) * 0.5
-              : (sub.maxMark || 100) * 0.4;
-            pdf.text(`Pass: ${Math.round(passMark)}`, bx + subW / 2, by + 12, {
-              align: "center",
-            });
-          });
-
-          // Only move Y position down by one row height
-          currentY += subH + 8;
-
-          // --- Detailed Master Table ---
-          pdf.setFontSize(9);
-          pdf.setFont(undefined, "bold");
-          pdf.setTextColor(17, 24, 39);
-          pdf.text("DETAILED LEARNER RESULTS", 15, currentY);
-          pdf.setDrawColor(229, 231, 235);
-          pdf.line(15, currentY + 1.5, pageWidth - 15, currentY + 1.5);
-          currentY += 4;
-
-          const headers = [
-            "Pos",
-            "Name",
-            "Sex",
-            ...subjects.map((s) => s.subjectName.substring(0, 6)),
-            isPrimary ? "Total" : "Pts",
-          ];
-
-          const tableBody = totals
-            .slice(0, rowsToShow)
-            .map((entry: RankedLearner) => {
-              const rank = rankedMap.get(entry.learnerId) || "-";
-              const learnerDetails = learners.find(
-                (l) => l.id === entry.learnerId,
-              );
-              const gender =
-                learnerDetails?.gender === "M"
-                  ? "M"
-                  : learnerDetails?.gender === "F"
-                    ? "F"
-                    : "-";
-
-              return [
-                rank.toString(),
-                entry.name.length > 18
-                  ? entry.name.substring(0, 16) + "…"
-                  : entry.name,
-                gender,
-                ...subjects.map((subject: SubjectEntity) => {
-                  if (!subject.id) return "-";
-                  const score = entry.scores[subject.id] || 0;
-                  return score === 0 ? "-" : score.toString();
-                }),
-                entry.total === 999 ? "DNQ" : entry.total.toString(),
-              ];
-            });
-
-          // Draw autoTable
           if (
-            (pdf as any).autoTable &&
-            typeof (pdf as any).autoTable === "function"
+            data.section === "body" &&
+            data.column.index === headers.length - 1 &&
+            data.cell.raw === "DNQ"
           ) {
-            (pdf as any).autoTable({
-              startY: currentY,
-              margin: { left: 15, right: 15, bottom: 20 },
-              head: [headers],
-              body: tableBody,
-              theme: "grid",
-              headStyles: {
-                fillColor: [16, 185, 129],
-                textColor: [255, 255, 255],
-                fontStyle: "bold",
-                halign: "center",
-                fontSize: 7,
-                lineWidth: 0.1,
-                lineColor: [5, 150, 105],
-              },
-              bodyStyles: {
-                fontSize: 7,
-                textColor: [17, 24, 39],
-                lineColor: [229, 231, 235],
-              },
-              alternateRowStyles: {
-                fillColor: [248, 250, 252],
-              },
-              columnStyles: {
-                0: { halign: "center", fontStyle: "bold", cellWidth: 8 },
-                1: { halign: "left", fontStyle: "bold", cellWidth: 35 },
-                2: {
-                  halign: "center",
-                  textColor: [107, 114, 128],
-                  cellWidth: 8,
-                },
-                [headers.length - 1]: {
-                  halign: "center",
-                  fontStyle: "bold",
-                  fillColor: [209, 250, 229],
-                  textColor: [5, 150, 105],
-                  cellWidth: 10,
-                },
-              },
-              didParseCell: function (data: any) {
-                if (
-                  data.section === "body" &&
-                  data.column.index >= 3 &&
-                  data.column.index < headers.length - 1
-                ) {
-                  data.cell.styles.halign = "center";
-
-                  const scoreStr = data.cell.raw;
-                  if (scoreStr !== "-" && scoreStr !== "DNQ") {
-                    const score = parseInt(scoreStr, 10);
-                    const subjectIdx = data.column.index - 3;
-                    const subject = subjects[subjectIdx];
-                    if (subject) {
-                      const maxM = subject.maxMark || 100;
-                      const passThreshold = isPrimary ? maxM * 0.5 : maxM * 0.4;
-                      if (score < passThreshold) {
-                        data.cell.styles.textColor = [222, 32, 16];
-                      }
-                    }
-                  }
-                }
-
-                if (
-                  data.section === "body" &&
-                  data.column.index === headers.length - 1
-                ) {
-                  if (data.cell.raw === "DNQ") {
-                    data.cell.styles.fillColor = [254, 226, 226];
-                    data.cell.styles.textColor = [185, 28, 28];
-                  }
-                }
-              },
-            });
-            // --- Footer with Page Numbers ---
-            const totalPages = (pdf as any).internal.pages.length - 1;
-            for (let i = 1; i <= totalPages; i++) {
-              pdf.setPage(i);
-              pdf.setFontSize(7);
-              pdf.setTextColor(156, 163, 175);
-
-              // Dashed Line
-              pdf.setDrawColor(229, 231, 235);
-              pdf.setLineDash([1, 1], 0);
-              pdf.line(15, pageHeight - 12, pageWidth - 15, pageHeight - 12);
-              pdf.setLineDash([], 0); // reset
-
-              pdf.text(
-                `RankItZM Reporting System • Official Mark Schedule`,
-                15,
-                pageHeight - 8,
-              );
-              pdf.text(
-                `Page ${i} of ${totalPages}`,
-                pageWidth - 15,
-                pageHeight - 8,
-                { align: "right" } as any,
-              );
-            }
-          } else {
-            console.error("autoTable plugin not initialized");
-            alert("PDF table generation failed. Please try again.");
-            setExporting(false);
-            return;
+            data.cell.styles.fillColor = [254, 226, 226];
+            data.cell.styles.textColor = [185, 28, 28];
           }
+        },
+      });
 
-          pdf.save(
-            `${classData?.className?.replace(/\s+/g, "_")}_${normalizedTestType}_Mark_Schedule.pdf`,
-          );
-          setExporting(false);
-        } catch (err) {
-          console.error("PDF export error:", err);
-          alert("Failed to export PDF: " + (err as any).message);
-          setExporting(false);
-        }
+      const totalPages = (pdf as any).internal.pages.length - 1;
+      for (let i = 1; i <= totalPages; i++) {
+        pdf.setPage(i);
+        pdf.setFontSize(7);
+        pdf.setTextColor(156, 163, 175);
+        pdf.setDrawColor(229, 231, 235);
+        (pdf as any).setLineDash([1, 1], 0);
+        pdf.line(15, pageHeight - 12, pageWidth - 15, pageHeight - 12);
+        (pdf as any).setLineDash([], 0);
+        pdf.text(
+          "RankItZM Reporting System • Official Mark Schedule",
+          15,
+          pageHeight - 8,
+        );
+        pdf.text(`Page ${i} of ${totalPages}`, pageWidth - 15, pageHeight - 8, {
+          align: "right",
+        } as any);
       }
+
+      pdf.save(
+        `${classData?.className?.replace(/\s+/g, "_")}_${normalizedTestType}_Mark_Schedule.pdf`,
+      );
+      setExporting(false);
     } catch (err) {
       console.error("PDF export error:", err);
-      alert("Failed to export PDF");
+      alert("Failed to export PDF: " + (err as any).message);
       setExporting(false);
     }
   };
-
   const getScoreColor = (score: number, maxMark: number): string => {
     const threshold50 = maxMark * 0.5;
     const threshold75 = maxMark * 0.75;
@@ -1322,6 +1209,37 @@ export default function BaseReportScreen() {
         </div>
       </header>
 
+      {/* Mobile Export Bar */}
+      {isMobile && (
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            padding: "8px 12px",
+            background: t.surface,
+            borderBottom: `1px solid ${t.border}`,
+          }}
+        >
+          <button
+            onClick={exportToPDF}
+            disabled={loading || totals.length === 0 || exporting}
+            style={{
+              flex: 1,
+              padding: "8px 0",
+              borderRadius: 8,
+              border: `1.5px solid ${t.border}`,
+              background: "#FEE2E2",
+              color: t.red,
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: "pointer",
+              opacity: loading || totals.length === 0 || exporting ? 0.5 : 1,
+            }}
+          >
+            PDF
+          </button>
+        </div>
+      )}
       {/* Main Content */}
       <main
         style={
@@ -1762,6 +1680,57 @@ export default function BaseReportScreen() {
                       {isPrimary ? "Total" : "Points"}
                     </th>
                   </tr>
+                  {isPrimary && (
+                    <tr
+                      style={{
+                        background: t.accentLighter || t.accentBg,
+                        borderBottom: `1.5px solid ${t.border}`,
+                      }}
+                    >
+                      <td
+                        style={{
+                          padding: isMobile ? "8px" : "12px",
+                          fontSize: isMobile ? 10 : 11,
+                          fontWeight: 700,
+                          color: t.accentText || t.accent,
+                          textTransform: "uppercase" as const,
+                          letterSpacing: "0.3px",
+                        }}
+                        colSpan={2}
+                      >
+                        Total Marks
+                      </td>
+                      {subjects
+                        .slice(0, isMobile ? 4 : subjects.length)
+                        .map((subject) => (
+                          <td
+                            key={subject.id}
+                            style={{
+                              padding: isMobile ? "8px" : "12px",
+                              textAlign: "center",
+                              fontSize: isMobile ? 11 : 13,
+                              fontWeight: 800,
+                              color: t.accentText || t.accent,
+                            }}
+                          >
+                            {subject.maxMark || 100}
+                          </td>
+                        ))}
+                      <td
+                        style={{
+                          padding: isMobile ? "8px" : "12px",
+                          textAlign: "center",
+                          fontSize: isMobile ? 11 : 13,
+                          fontWeight: 800,
+                          color: t.accentText || t.accent,
+                        }}
+                      >
+                        {subjects
+                          .slice(0, isMobile ? 4 : subjects.length)
+                          .reduce((sum, s) => sum + (s.maxMark || 100), 0)}
+                      </td>
+                    </tr>
+                  )}
                 </thead>
                 <tbody>
                   {totals

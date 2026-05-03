@@ -15,6 +15,7 @@ import {
   Menu,
   X,
   Calendar,
+  Sparkles,
 } from "lucide-react";
 import { openDB, DBSchema, IDBPDatabase } from "idb";
 
@@ -225,13 +226,56 @@ interface MainLayoutProps {
 }
 
 // --- THEME ---
-const THEME = {
+const LIGHT_THEME = {
   sidebarBg: "#1e1b4b",
   sidebarText: "#94a3b8",
   sidebarTextActive: "#ffffff",
   itemActive: "#6366f1",
   accentGreen: "#10b981",
   accentRed: "#f43f5e",
+  headerBg: "rgba(255,255,255,0.85)",
+  headerBorder: "#f1f5f9",
+  headerText: "#1e293b",
+  headerTextMuted: "#94a3b8",
+  headerTextSub: "#64748b",
+  searchBg: "#f1f5f9",
+  searchText: "#1e293b",
+  avatarBg: "#eef2ff",
+  avatarColor: "#4f46e5",
+  termBg: "#ecfdf5",
+  termBorder: "#d1fae5",
+  termText: "#065f46",
+  divider: "#f1f5f9",
+  toggleBg: "#f8fafc",
+  mainBg: "#f8fafc",
+  breadcrumbMuted: "#94a3b8",
+  breadcrumbActive: "#4f46e5",
+};
+
+const DARK_THEME = {
+  sidebarBg: "#0f0e23",
+  sidebarText: "#94a3b8",
+  sidebarTextActive: "#ffffff",
+  itemActive: "#818cf8",
+  accentGreen: "#10b981",
+  accentRed: "#f43f5e",
+  headerBg: "rgba(15,23,42,0.92)",
+  headerBorder: "#1e293b",
+  headerText: "#f1f5f9",
+  headerTextMuted: "#64748b",
+  headerTextSub: "#475569",
+  searchBg: "#1e293b",
+  searchText: "#f1f5f9",
+  avatarBg: "#1e1b4b",
+  avatarColor: "#818cf8",
+  termBg: "#052e16",
+  termBorder: "#064e3b",
+  termText: "#34d399",
+  divider: "#1e293b",
+  toggleBg: "#1e293b",
+  mainBg: "#0f172a",
+  breadcrumbMuted: "#475569",
+  breadcrumbActive: "#818cf8",
 };
 
 const navigationItems: NavigationItem[] = [
@@ -266,6 +310,12 @@ const navigationItems: NavigationItem[] = [
     path: "/reports",
   },
   {
+    id: "ai-tools",
+    label: "AI Teaching Tools",
+    icon: <Sparkles size={19} />,
+    path: "/ai-tools",
+  },
+  {
     id: "settings",
     label: "System Config",
     icon: <Settings2 size={19} />,
@@ -276,8 +326,9 @@ const navigationItems: NavigationItem[] = [
 const menuGroups = [
   { title: "Overview", items: navigationItems.slice(0, 3) },
   { title: "Academic Performance", items: navigationItems.slice(3, 5) },
+  { title: "AI Tools", items: navigationItems.slice(5, 6) },
 ];
-const systemGroup = navigationItems.slice(5, 6);
+const systemGroup = navigationItems.slice(6, 7);
 
 // Bottom tab bar shows only the 4 most-used nav items on mobile
 const bottomTabItems = navigationItems.slice(0, 4);
@@ -302,7 +353,11 @@ export function MainLayout({
     year: "...",
   });
 
-  const t = THEME;
+  const [dark] = useState(
+    () => localStorage.getItem("rankitz-theme") === "dark",
+  );
+  const [profileOpen, setProfileOpen] = useState(false);
+  const t = dark ? DARK_THEME : LIGHT_THEME;
 
   // Responsive values
   const mainPadding = isMobile ? 12 : isTablet ? 20 : 40;
@@ -467,7 +522,7 @@ export function MainLayout({
   return (
     <div
       style={{
-        background: "#f8fafc",
+        background: t.mainBg,
         minHeight: "100vh",
         display: "flex",
         overflow: "hidden",
@@ -696,9 +751,9 @@ export function MainLayout({
         <header
           style={{
             height: headerHeight,
-            background: "rgba(255, 255, 255, 0.8)",
+            background: t.headerBg,
             backdropFilter: "blur(12px)",
-            borderBottom: "1px solid #f1f5f9",
+            borderBottom: `1px solid ${t.headerBorder}`,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -718,10 +773,10 @@ export function MainLayout({
               style={{
                 padding: isMobile ? 8 : 10,
                 borderRadius: 12,
-                background: "#f8fafc",
+                background: t.toggleBg,
                 border: "none",
                 cursor: "pointer",
-                color: "#64748b",
+                color: t.headerTextSub,
                 minHeight: 48,
                 minWidth: 48,
                 display: "flex",
@@ -743,9 +798,12 @@ export function MainLayout({
                   fontWeight: 600,
                 }}
               >
-                <span style={{ color: "#94a3b8" }}>Main</span>
-                <ChevronRight size={14} color="#cbd5e1" />
-                <span style={{ color: "#4f46e5" }}>Dashboard</span>
+                <span style={{ color: t.breadcrumbMuted }}>Main</span>
+                <ChevronRight size={14} color={t.headerTextMuted} />
+                <span style={{ color: t.breadcrumbActive }}>
+                  {navigationItems.find((n) => isActive(n.path))?.label ||
+                    "Dashboard"}
+                </span>
               </div>
             )}
           </div>
@@ -771,7 +829,8 @@ export function MainLayout({
                     padding: "12px 16px 12px 48px",
                     borderRadius: 16,
                     border: "none",
-                    background: "#f1f5f9",
+                    background: t.searchBg,
+                    color: t.searchText,
                     outline: "none",
                     fontSize: 14,
                   }}
@@ -795,10 +854,10 @@ export function MainLayout({
                   alignItems: "center",
                   gap: 8,
                   padding: "8px 16px",
-                  background: "#ecfdf5",
-                  border: "1px solid #d1fae5",
+                  background: t.termBg,
+                  border: `1px solid ${t.termBorder}`,
                   borderRadius: 16,
-                  color: "#065f46",
+                  color: t.termText,
                 }}
               >
                 <Calendar size={14} strokeWidth={2.5} />
@@ -816,64 +875,323 @@ export function MainLayout({
             )}
 
             {!isMobile && (
-              <div style={{ width: 1, height: 32, background: "#f1f5f9" }} />
+              <div style={{ width: 1, height: 32, background: t.divider }} />
             )}
 
-            {/* User profile button */}
-            <button
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                padding: 6,
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                minHeight: 48,
-              }}
-            >
-              {/* Name + role — desktop only */}
-              {isDesktop && (
-                <div style={{ textAlign: "right" }}>
-                  <p
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 700,
-                      color: "#1e293b",
-                      margin: 0,
-                    }}
-                  >
-                    {currentUser.name}
-                  </p>
-                  <p
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: "#94a3b8",
-                      textTransform: "uppercase",
-                      margin: 2,
-                    }}
-                  >
-                    {currentUser.role}
-                  </p>
-                </div>
-              )}
-              <div
+            {/* User profile button + dropdown */}
+            <div style={{ position: "relative" }}>
+              <button
+                onClick={() => setProfileOpen((v) => !v)}
                 style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 14,
-                  background: "#eef2ff",
-                  border: "1px solid #e0e7ff",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  color: "#4f46e5",
+                  gap: 12,
+                  padding: 6,
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  minHeight: 48,
                 }}
               >
-                <User size={20} strokeWidth={2.5} />
-              </div>
-            </button>
+                {isDesktop && (
+                  <div style={{ textAlign: "right" }}>
+                    <p
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: t.headerText,
+                        margin: 0,
+                      }}
+                    >
+                      {currentUser.name}
+                    </p>
+                    <p
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: t.headerTextMuted,
+                        textTransform: "uppercase",
+                        margin: 2,
+                      }}
+                    >
+                      {currentUser.role}
+                    </p>
+                  </div>
+                )}
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 14,
+                    background: t.avatarBg,
+                    border: `1px solid ${profileOpen ? t.avatarColor : t.avatarBg}`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: t.avatarColor,
+                    transition: "border-color 0.2s",
+                  }}
+                >
+                  <User size={20} strokeWidth={2.5} />
+                </div>
+              </button>
+
+              {/* Dropdown */}
+              {profileOpen && (
+                <>
+                  {/* Click-away backdrop */}
+                  <div
+                    onClick={() => setProfileOpen(false)}
+                    style={{ position: "fixed", inset: 0, zIndex: 90 }}
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 10px)",
+                      right: 0,
+                      width: 280,
+                      background: dark ? "#1e293b" : "#ffffff",
+                      border: `1px solid ${dark ? "#334155" : "#e2e8f0"}`,
+                      borderRadius: 16,
+                      boxShadow: dark
+                        ? "0 20px 40px rgba(0,0,0,0.4)"
+                        : "0 20px 40px rgba(15,23,42,0.12)",
+                      zIndex: 100,
+                      overflow: "hidden",
+                    }}
+                  >
+                    {/* Header */}
+                    <div
+                      style={{
+                        background:
+                          "linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)",
+                        padding: "20px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 14,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 14,
+                          background: "rgba(255,255,255,0.2)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "white",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <User size={24} strokeWidth={2} />
+                      </div>
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 15,
+                            fontWeight: 700,
+                            color: "white",
+                          }}
+                        >
+                          {currentUser.name}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: "rgba(255,255,255,0.7)",
+                            textTransform: "uppercase",
+                            letterSpacing: "1px",
+                            marginTop: 2,
+                          }}
+                        >
+                          {currentUser.role}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Info rows */}
+                    <div style={{ padding: "12px 0" }}>
+                      {[
+                        {
+                          icon: <Calendar size={14} />,
+                          label: "Academic Term",
+                          value: `${academicInfo.term}, ${academicInfo.year}`,
+                        },
+                        {
+                          icon: <ShieldCheck size={14} />,
+                          label: "Access Level",
+                          value: "Full Administrator",
+                        },
+                      ].map((row, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 12,
+                            padding: "10px 20px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: 8,
+                              background: dark ? "#334155" : "#f1f5f9",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "#6366f1",
+                              flexShrink: 0,
+                            }}
+                          >
+                            {row.icon}
+                          </div>
+                          <div>
+                            <div
+                              style={{
+                                fontSize: 10,
+                                color: dark ? "#64748b" : "#94a3b8",
+                                fontWeight: 600,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.5px",
+                              }}
+                            >
+                              {row.label}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 13,
+                                fontWeight: 600,
+                                color: dark ? "#f1f5f9" : "#1e293b",
+                                marginTop: 1,
+                              }}
+                            >
+                              {row.value}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Divider */}
+                      <div
+                        style={{
+                          height: 1,
+                          background: dark ? "#334155" : "#f1f5f9",
+                          margin: "8px 0",
+                        }}
+                      />
+
+                      {/* Settings link */}
+                      <button
+                        onClick={() => {
+                          setProfileOpen(false);
+                          navigate("/settings");
+                        }}
+                        style={{
+                          width: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                          padding: "10px 20px",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: dark ? "#cbd5e1" : "#374151",
+                          fontSize: 13,
+                          fontWeight: 600,
+                          textAlign: "left",
+                          transition: "background 0.15s",
+                        }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.background = dark
+                            ? "#334155"
+                            : "#f8fafc")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.background = "none")
+                        }
+                      >
+                        <div
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 8,
+                            background: dark ? "#334155" : "#f1f5f9",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#6366f1",
+                          }}
+                        >
+                          <Settings2 size={14} />
+                        </div>
+                        System Settings
+                      </button>
+
+                      {/* Divider */}
+                      <div
+                        style={{
+                          height: 1,
+                          background: dark ? "#334155" : "#f1f5f9",
+                          margin: "8px 0",
+                        }}
+                      />
+
+                      {/* Sign out */}
+                      <button
+                        onClick={() => {
+                          setProfileOpen(false);
+                          logout();
+                          navigate("/login");
+                        }}
+                        style={{
+                          width: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                          padding: "10px 20px",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "#f43f5e",
+                          fontSize: 13,
+                          fontWeight: 600,
+                          textAlign: "left",
+                          transition: "background 0.15s",
+                        }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.background = dark
+                            ? "#7f1d1d22"
+                            : "#fff1f2")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.background = "none")
+                        }
+                      >
+                        <div
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 8,
+                            background: dark ? "#7f1d1d33" : "#fff1f2",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#f43f5e",
+                          }}
+                        >
+                          <LogOut size={14} />
+                        </div>
+                        Sign Out
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </header>
 
@@ -883,8 +1201,8 @@ export function MainLayout({
             flex: 1,
             overflowY: "auto",
             padding: mainPadding,
-            paddingBottom: isMobile ? mainPadding + 60 : mainPadding, // space for bottom tab bar
-            background: "#f8fafc",
+            paddingBottom: isMobile ? mainPadding + 60 : mainPadding,
+            background: t.mainBg,
           }}
           className="custom-scroll"
         >

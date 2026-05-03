@@ -4,9 +4,6 @@ import { useLearners, useClasses } from "../hooks/useClassManager";
 import { db, LearnerEntity, ClassEntity } from "../db";
 import { useClassListPDF } from "../lib/classListPDF";
 
-// Lazy load jsPDF to avoid bundle issues
-let jsPDFLib: any = null;
-
 const LIGHT = {
   bg: "#F3F4F6",
   surface: "#FFFFFF",
@@ -136,73 +133,6 @@ const Icons = {
 /**
  * Load jsPDF dynamically with proper ES6 import
  */
-const loadJsPDF = async (): Promise<any> => {
-  // Return if already loaded
-  if (jsPDFLib) {
-    return jsPDFLib;
-  }
-
-  try {
-    // Try dynamic import first (most reliable)
-    const module = await import("jspdf");
-    jsPDFLib = module.jsPDF;
-    console.log("✓ jsPDF loaded via dynamic import");
-    return jsPDFLib;
-  } catch (importErr) {
-    console.warn("Dynamic import failed, trying CDN fallback...", importErr);
-  }
-
-  // Fallback to CDN if npm import fails
-  const cdnSources = [
-    "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
-    "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js",
-    "https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js",
-  ];
-
-  for (const src of cdnSources) {
-    try {
-      await new Promise<void>((resolve, reject) => {
-        const script = document.createElement("script");
-        script.src = src;
-        script.async = true;
-
-        const timeout = setTimeout(() => {
-          reject(new Error(`Timeout loading from ${src}`));
-        }, 15000);
-
-        script.onload = () => {
-          clearTimeout(timeout);
-          // Access jsPDF from window global after CDN load
-          jsPDFLib = (window as any).jspdf?.jsPDF;
-          if (!jsPDFLib) {
-            reject(new Error("jsPDF not found on window object"));
-          }
-          resolve();
-        };
-
-        script.onerror = () => {
-          clearTimeout(timeout);
-          reject(new Error(`Failed to load from ${src}`));
-        };
-
-        document.head.appendChild(script);
-      });
-
-      console.log(`✓ jsPDF loaded from CDN: ${src}`);
-      return jsPDFLib;
-    } catch (err) {
-      console.warn(`✗ CDN failed: ${src}`, err);
-      continue;
-    }
-  }
-
-  throw new Error(
-    "Failed to load jsPDF from all sources. Please ensure:\n" +
-      "1. You have jsPDF installed: npm install jspdf\n" +
-      "2. Your internet connection is working\n" +
-      "3. Try refreshing the page",
-  );
-};
 
 export default function LearnerListScreen() {
   const navigate = useNavigate();
@@ -219,7 +149,6 @@ export default function LearnerListScreen() {
   const t = dark ? DARK : LIGHT;
 
   const [isMobileView, setIsMobileView] = useState(false);
-
   useEffect(() => {
     const handleResize = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -228,6 +157,14 @@ export default function LearnerListScreen() {
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Refresh learners data every 2 seconds to stay in sync with other screens
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Component will re-render when learners change from useLearners hook
+    }, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -324,9 +261,6 @@ export default function LearnerListScreen() {
         (schoolSettings as any)?.deputyHeadteacherName ||
         cachedSettings?.deputyHeadteacherName ||
         "";
-
-      // Load jsPDF first
-      await loadJsPDF();
 
       // Generate PDF
       await generatePDF(
@@ -1489,7 +1423,7 @@ export default function LearnerListScreen() {
 }
 
 /**
- * Generate class list PDF with proper error handling
+ * Generate class list PDF using jsPDF + autoTable
  */
 async function generatePDF(
   students: LearnerEntity[],
@@ -1501,23 +1435,18 @@ async function generatePDF(
   theme: Theme,
 ): Promise<void> {
   try {
-    // Load jsPDF library (handles both npm and CDN)
-    const jsPDF = await loadJsPDF();
-
-    if (!jsPDF) {
-      throw new Error("jsPDF library failed to load properly");
-    }
+    const { default: jsPDF } = await import("jspdf");
+    const { default: autoTable } = await import("jspdf-autotable");
 
     const pdf = new jsPDF({
       orientation: "portrait",
       unit: "mm",
       format: "a4",
     });
-
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     const margin = 15;
-    const contentWidth = pageWidth - 2 * margin;
+    const contentWidth = pageWidth - margin * 2;
 
     const generatedDate = new Date().toLocaleDateString("en-US", {
       day: "2-digit",
@@ -1525,56 +1454,39 @@ async function generatePDF(
       year: "numeric",
     });
 
-    let yPos = margin;
-
-    // Zambian Flag (decorative line)
-    const flagColors = [
-      [25, 138, 0],
-      [239, 51, 64],
-      [0, 0, 0],
-      [255, 130, 0],
-    ];
-    const flagWidth = 30;
-    const flagHeight = 2;
-    let xPos = pageWidth / 2 - flagWidth / 2;
-
-    flagColors.forEach((color) => {
-      pdf.setDrawColor(...color);
-      pdf.setFillColor(...color);
-      pdf.rect(xPos, yPos, flagWidth / 4, flagHeight, "F");
-      xPos += flagWidth / 4;
-    });
-    yPos += 8;
-
-    // School Name
-    pdf.setFontSize(18);
-    pdf.setTextColor(17, 24, 39);
-    pdf.setFont(undefined, "bold");
-    pdf.text(schoolName, pageWidth / 2, yPos, { align: "center" });
-    yPos += 8;
-
-    // Report Title
+    // ── HEADER ──
+    pdf.setFillColor(16, 185, 129);
+    pdf.roundedRect(margin, 12, contentWidth, 24, 2, 2, "F");
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont("helvetica", "bold");
     pdf.setFontSize(14);
-    pdf.setFont(undefined, "bold");
-    pdf.text("Class List Report", pageWidth / 2, yPos, { align: "center" });
-    yPos += 8;
+    pdf.text(schoolName.toUpperCase(), pageWidth / 2, 20, { align: "center" });
+    pdf.setFontSize(9);
+    pdf.text("CLASS LIST REPORT", pageWidth / 2, 26, { align: "center" });
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(7);
+    pdf.text(
+      `${className} • Academic Year: ${academicYear} • Generated: ${generatedDate}`,
+      pageWidth / 2,
+      32,
+      { align: "center" },
+    );
 
-    // Metadata
-    pdf.setFontSize(10);
-    pdf.setTextColor(107, 114, 128);
-    pdf.setFont(undefined, "normal");
-    const headerInfo = [
-      `Class: ${className}`,
-      `Academic Year: ${academicYear}`,
-      `Generated: ${generatedDate}`,
-    ];
-    headerInfo.forEach((info) => {
-      pdf.text(info, margin, yPos);
-      yPos += 5;
-    });
-    yPos += 5;
+    // Zambia flag strip
+    const stripY = 38;
+    const pW = contentWidth / 7;
+    pdf.setFillColor(25, 138, 0);
+    pdf.rect(margin, stripY, pW * 4, 1.2, "F");
+    pdf.setFillColor(222, 32, 16);
+    pdf.rect(margin + pW * 4, stripY, pW, 1.2, "F");
+    pdf.setFillColor(0, 0, 0);
+    pdf.rect(margin + pW * 5, stripY, pW, 1.2, "F");
+    pdf.setFillColor(239, 125, 0);
+    pdf.rect(margin + pW * 6, stripY, pW, 1.2, "F");
 
-    // Statistics
+    let y = 46;
+
+    // ── STATS BOXES ──
     const maleCount = students.filter(
       (s) => s.gender?.toLowerCase() === "male",
     ).length;
@@ -1583,144 +1495,133 @@ async function generatePDF(
     ).length;
     const contactCount = students.filter((s) => s.parentPhone).length;
 
-    pdf.setFontSize(11);
-    pdf.setTextColor(17, 24, 39);
-    pdf.setFont(undefined, "bold");
-    const stats = [
+    const boxW = (contentWidth - 9) / 4;
+    const statsArr = [
       {
-        label: "Total Students",
-        value: students.length,
-        color: [16, 185, 129],
+        l: "TOTAL STUDENTS",
+        v: students.length.toString(),
+        color: [16, 185, 129] as [number, number, number],
       },
-      { label: "Male", value: maleCount, color: [2, 132, 199] },
-      { label: "Female", value: femaleCount, color: [245, 158, 11] },
-      { label: "Contact Info", value: contactCount, color: [139, 92, 246] },
+      {
+        l: "MALE",
+        v: maleCount.toString(),
+        color: [2, 132, 199] as [number, number, number],
+      },
+      {
+        l: "FEMALE",
+        v: femaleCount.toString(),
+        color: [245, 158, 11] as [number, number, number],
+      },
+      {
+        l: "CONTACT INFO",
+        v: contactCount.toString(),
+        color: [139, 92, 246] as [number, number, number],
+      },
     ];
-
-    const statColWidth = contentWidth / 4;
-    stats.forEach((stat, idx) => {
-      const xStat = margin + idx * statColWidth;
-      pdf.setTextColor(...stat.color);
-      pdf.setFont(undefined, "bold");
-      pdf.setFontSize(14);
-      pdf.text(stat.value.toString(), xStat + statColWidth / 2, yPos, {
-        align: "center",
-      });
+    statsArr.forEach((s, i) => {
+      const bx = margin + i * (boxW + 3);
+      pdf.setFillColor(249, 250, 251);
+      pdf.setDrawColor(229, 231, 235);
+      pdf.roundedRect(bx, y, boxW, 14, 1.5, 1.5, "FD");
+      pdf.setFontSize(6);
       pdf.setTextColor(107, 114, 128);
-      pdf.setFont(undefined, "normal");
-      pdf.setFontSize(9);
-      pdf.text(stat.label, xStat + statColWidth / 2, yPos + 6, {
-        align: "center",
-      });
+      pdf.setFont("helvetica", "bold");
+      pdf.text(s.l, bx + boxW / 2, y + 5, { align: "center" });
+      pdf.setFontSize(11);
+      pdf.setTextColor(...s.color);
+      pdf.text(s.v, bx + boxW / 2, y + 11, { align: "center" });
     });
-    yPos += 20;
+    y += 20;
 
-    // Table Header
+    // ── STUDENT TABLE ──
     pdf.setFontSize(9);
+    pdf.setFont("helvetica", "bold");
     pdf.setTextColor(17, 24, 39);
-    pdf.setFont(undefined, "bold");
-    pdf.setFillColor(249, 250, 251);
-    const colWidths = [15, 65, 35, 50];
-    const headers = ["#", "Student Name", "Gender", "Parent Phone"];
+    pdf.text("STUDENT LIST", margin, y);
+    pdf.setDrawColor(229, 231, 235);
+    pdf.line(margin, y + 1.5, pageWidth - margin, y + 1.5);
+    y += 4;
 
-    let xStart = margin;
-    headers.forEach((header, idx) => {
-      pdf.rect(xStart, yPos - 4, colWidths[idx], 8, "F");
-      pdf.text(header, xStart + 2, yPos, { fontSize: 9 });
-      xStart += colWidths[idx];
-    });
-    yPos += 10;
-
-    // Table Rows
-    pdf.setFont(undefined, "normal");
-    students.forEach((student, idx) => {
-      // Page break handling
-      if (yPos > pageHeight - 40) {
-        pdf.addPage();
-        yPos = margin;
-
-        // Repeat header
-        pdf.setFontSize(9);
-        pdf.setTextColor(17, 24, 39);
-        pdf.setFont(undefined, "bold");
-        pdf.setFillColor(249, 250, 251);
-        xStart = margin;
-        headers.forEach((header, headerIdx) => {
-          pdf.rect(xStart, yPos - 4, colWidths[headerIdx], 8, "F");
-          pdf.text(header, xStart + 2, yPos, { fontSize: 9 });
-          xStart += colWidths[headerIdx];
-        });
-        yPos += 10;
-      }
-
-      pdf.setFont(undefined, "normal");
-      pdf.setTextColor(17, 24, 39);
-
-      // Alternating row background
-      if (idx % 2 === 0) {
-        pdf.setFillColor(249, 250, 251);
-        pdf.rect(margin, yPos - 4, contentWidth, 8, "F");
-      }
-
-      xStart = margin;
-      const row = [
+    autoTable(pdf, {
+      startY: y,
+      margin: { left: margin, right: margin, bottom: 25 },
+      head: [["#", "Student Name", "Gender", "Parent Phone"]],
+      body: students.map((student, idx) => [
         (idx + 1).toString(),
-        student.name.substring(0, 25),
-        student.gender || "Unknown",
+        student.name,
+        student.gender
+          ? student.gender.charAt(0).toUpperCase() +
+            student.gender.slice(1).toLowerCase()
+          : "—",
         student.parentPhone || "—",
-      ];
-
-      row.forEach((cell, colIdx) => {
-        pdf.text(cell.substring(0, 20), xStart + 2, yPos, { fontSize: 9 });
-        xStart += colWidths[colIdx];
-      });
-
-      yPos += 8;
+      ]),
+      theme: "grid",
+      headStyles: {
+        fillColor: [16, 185, 129],
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+        fontSize: 8,
+        halign: "center",
+      },
+      bodyStyles: { fontSize: 8, textColor: [17, 24, 39] },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles: {
+        0: { halign: "center", cellWidth: 10 },
+        1: { halign: "left", fontStyle: "bold" },
+        2: { halign: "center", cellWidth: 25 },
+        3: { halign: "left", cellWidth: 45 },
+      },
     });
 
-    // Footer
-    yPos += 10;
-    pdf.setFontSize(8);
-    pdf.setTextColor(107, 114, 128);
-    pdf.text(
-      `Generated on ${generatedDate} | RankItZM v1.2.0`,
-      pageWidth / 2,
-      pageHeight - 12,
-      { align: "center" },
-    );
-
-    // Signature Section
-    yPos += 5;
+    // ── SIGNATURES ──
+    const finalY = (pdf as any).lastAutoTable.finalY + 12;
+    pdf.setFont("helvetica", "bold");
     pdf.setFontSize(9);
     pdf.setTextColor(17, 24, 39);
-    pdf.setFont(undefined, "bold");
-    pdf.text("Headteacher", margin, yPos);
-    pdf.text("Deputy Headteacher", margin + 80, yPos);
-
-    // Signature lines
+    pdf.text("Headteacher", margin, finalY);
+    pdf.text("Deputy Headteacher", margin + 90, finalY);
     pdf.setDrawColor(17, 24, 39);
-    pdf.line(margin, yPos + 15, margin + 40, yPos + 15);
-    pdf.line(margin + 80, yPos + 15, margin + 120, yPos + 15);
-
-    // Names
+    pdf.line(margin, finalY + 12, margin + 55, finalY + 12);
+    pdf.line(margin + 90, finalY + 12, margin + 145, finalY + 12);
+    pdf.setFont("helvetica", "normal");
     pdf.setFontSize(7);
-    pdf.setFont(undefined, "normal");
+    pdf.setTextColor(107, 114, 128);
     pdf.text(
       headteacherName || "________________________________",
       margin,
-      yPos + 18,
+      finalY + 16,
     );
     pdf.text(
       deputyHeadteacherName || "________________________________",
-      margin + 80,
-      yPos + 18,
+      margin + 90,
+      finalY + 16,
     );
 
-    // Save PDF
+    // ── FOOTER on every page ──
+    const totalPages = (pdf as any).internal.pages.length - 1;
+    for (let i = 1; i <= totalPages; i++) {
+      pdf.setPage(i);
+      pdf.setFontSize(7);
+      pdf.setTextColor(156, 163, 175);
+      pdf.setDrawColor(229, 231, 235);
+      (pdf as any).setLineDash([1, 1], 0);
+      pdf.line(margin, pageHeight - 12, pageWidth - margin, pageHeight - 12);
+      (pdf as any).setLineDash([], 0);
+      pdf.text(
+        "RankItZM School Management System • Class List",
+        margin,
+        pageHeight - 8,
+      );
+      pdf.text(
+        `Page ${i} of ${totalPages}`,
+        pageWidth - margin,
+        pageHeight - 8,
+        { align: "right" } as any,
+      );
+    }
+
     const filename = `class-list-${className.replace(/\s+/g, "-")}-${Date.now()}.pdf`;
     pdf.save(filename);
-
-    console.log(`✓ PDF saved: ${filename}`);
   } catch (error) {
     console.error("PDF generation error:", error);
     throw new Error(

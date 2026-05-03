@@ -13,6 +13,7 @@ import {
   useClasses,
 } from "../hooks/useClassManager";
 import { useAuth } from "../context/AuthContext";
+import { getGradeLabel, getGradeColor } from "../lib/grading";
 
 // Import db from the correct path
 let dbInstance: any = null;
@@ -179,15 +180,7 @@ const SUBJECT_COLORS: Record<string, { primary: string; dark: string }> = {
   "Art & Design": { primary: "#FF006E", dark: "#C2185B" },
 };
 
-// Simple grade function
-const getGradeLabel = (score: number, maxMark: number = 100): string => {
-  const percentage = (score / maxMark) * 100;
-  if (percentage >= 75) return "1";
-  if (percentage >= 60) return "2";
-  if (percentage >= 50) return "3";
-  if (percentage >= 40) return "4";
-  return "5";
-};
+// removed - using imported grading utils
 
 export default function ViewScoresScreen() {
   const navigate = useNavigate();
@@ -257,7 +250,24 @@ export default function ViewScoresScreen() {
     }
   }, [localScores]);
 
-  const filteredScores = [...scores, ...localScores].filter(
+  const [allScores, setAllScores] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    const fetchAllScores = async () => {
+      try {
+        const database = await initDb();
+        if (database) {
+          const fresh = await database.getAllScores();
+          setAllScores(fresh);
+        }
+      } catch (err) {
+        console.error("Error fetching scores:", err);
+      }
+    };
+    fetchAllScores();
+  }, [localScores]);
+
+  const filteredScores = allScores.filter(
     (score) =>
       score.testType === testType &&
       classLearners.some((l) => l.id === score.learnerId) &&
@@ -265,14 +275,6 @@ export default function ViewScoresScreen() {
   );
 
   const getScore = (learnerId: number, subjectId: number) => {
-    const localScore = localScores.find(
-      (s) => s.learnerId === learnerId && s.subjectId === subjectId,
-    )?.score;
-
-    if (localScore !== undefined) {
-      return localScore;
-    }
-
     return filteredScores.find(
       (s) => s.learnerId === learnerId && s.subjectId === subjectId,
     )?.score;
@@ -281,7 +283,6 @@ export default function ViewScoresScreen() {
   const handleSaveScore = async () => {
     if (!editingScore) return;
 
-    // Validation: check if score exceeds max mark
     const newScore = parseInt(editValue);
     const subject = classSubjects.find((s) => s.id === editingScore.subjectId);
     const maxMark = subject?.maxMark || 100;
@@ -298,7 +299,9 @@ export default function ViewScoresScreen() {
 
       const now = new Date();
       const year = now.getFullYear();
-      const term = "Term1";
+      const currentMonth = now.getMonth();
+      const term =
+        currentMonth >= 8 ? "Term3" : currentMonth >= 4 ? "Term2" : "Term1";
       const weekNumber = 1;
 
       const scoreData = {
@@ -314,16 +317,9 @@ export default function ViewScoresScreen() {
 
       await database.updateScore(scoreData);
 
-      setLocalScores((prev) => {
-        const filtered = prev.filter(
-          (s) =>
-            !(
-              s.learnerId === scoreData.learnerId &&
-              s.subjectId === scoreData.subjectId
-            ),
-        );
-        return [...filtered, scoreData];
-      });
+      // Immediately refresh allScores
+      const refreshed = await database.getAllScores();
+      setAllScores(refreshed);
 
       setSaveSuccess(true);
       setTimeout(() => {
@@ -337,18 +333,11 @@ export default function ViewScoresScreen() {
     }
   };
 
-  const getScoreColorInfo = (score?: number) => {
-    if (!score && score !== 0)
+  const getScoreColorInfo = (score?: number, maxMark: number = 100) => {
+    if (score === undefined || score === null)
       return { bg: t.surfaceAlt, text: t.textMuted, border: t.borderSub };
-    if (score >= 75)
-      return {
-        bg: t.accentLighter,
-        text: t.accentDark,
-        border: `${t.accent}40`,
-      };
-    if (score >= 60)
-      return { bg: t.orangeBg, text: t.orangeText, border: `${t.orange}40` };
-    return { bg: t.redBg, text: t.redText, border: `${t.red}40` };
+    const level = classInfo?.educationLevel || "secondary";
+    return getGradeColor(score, maxMark, level);
   };
 
   const calculateLearnerAverage = (learnerId: number) => {
@@ -624,7 +613,10 @@ export default function ViewScoresScreen() {
       const sorted = [...subjectScores].sort((a, b) => b.score - a.score);
 
       sorted.forEach((student, idx) => {
-        const grade = getGradeLabel(student.score);
+        const subject = classSubjects.find((s) => s.id === subjectId);
+        const maxMark = subject?.maxMark || 100;
+        const level = classInfo?.educationLevel || "secondary";
+        const grade = getGradeLabel(student.score, maxMark, level);
         const isEven = idx % 2 === 1;
 
         if (isEven) {
@@ -662,25 +654,41 @@ export default function ViewScoresScreen() {
         doc.text(`${student.score}%`, colX.score, yPos + 7.5, {
           align: "center",
         });
-
         let gBg, gText;
         switch (grade) {
-          case "1":
+          case "One":
             gBg = { r: 209, g: 250, b: 229 };
             gText = { r: 6, g: 95, b: 70 };
             break;
-          case "2":
-            gBg = { r: 224, g: 231, b: 255 };
-            gText = { r: 55, g: 48, b: 163 };
+          case "Two":
+            gBg = { r: 209, g: 250, b: 229 };
+            gText = { r: 6, g: 95, b: 70 };
             break;
-          case "3":
+          case "Three":
+            gBg = { r: 219, g: 234, b: 254 };
+            gText = { r: 30, g: 64, b: 175 };
+            break;
+          case "Four":
+            gBg = { r: 219, g: 234, b: 254 };
+            gText = { r: 30, g: 64, b: 175 };
+            break;
+          case "Five":
             gBg = { r: 254, g: 243, b: 199 };
             gText = { r: 146, g: 64, b: 14 };
             break;
-          case "4":
+          case "Six":
+            gBg = { r: 254, g: 243, b: 199 };
+            gText = { r: 146, g: 64, b: 14 };
+            break;
+          case "Seven":
             gBg = { r: 255, g: 237, b: 213 };
             gText = { r: 154, g: 52, b: 18 };
             break;
+          case "Eight":
+            gBg = { r: 255, g: 237, b: 213 };
+            gText = { r: 154, g: 52, b: 18 };
+            break;
+          case "Fail":
           default:
             gBg = { r: 254, g: 226, b: 226 };
             gText = { r: 153, g: 27, b: 27 };
@@ -1154,7 +1162,10 @@ export default function ViewScoresScreen() {
                       </td>
                       {classSubjects.map((subject) => {
                         const score = getScore(learner.id!, subject.id!);
-                        const sInfo = getScoreColorInfo(score);
+                        const sInfo = getScoreColorInfo(
+                          score,
+                          subject.maxMark || 100,
+                        );
                         return (
                           <td
                             key={subject.id}
@@ -1319,7 +1330,11 @@ export default function ViewScoresScreen() {
                     )
                     .map((learner, idx, arr) => {
                       const score = getScore(learner.id!, selectedSubject);
-                      const sInfo = getScoreColorInfo(score);
+                      const sInfo = getScoreColorInfo(
+                        score,
+                        classSubjects.find((s) => s.id === selectedSubject)
+                          ?.maxMark || 100,
+                      );
                       return (
                         <div
                           key={learner.id}
@@ -1505,7 +1520,10 @@ export default function ViewScoresScreen() {
                     )
                     .map((subject, idx, arr) => {
                       const score = getScore(selectedLearner, subject.id!);
-                      const sInfo = getScoreColorInfo(score);
+                      const sInfo = getScoreColorInfo(
+                        score,
+                        subject.maxMark || 100,
+                      );
                       return (
                         <div
                           key={subject.id}
