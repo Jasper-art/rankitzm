@@ -132,9 +132,18 @@ const PaymentManualScreen = lazy(() => import("./screens/PaymentManualScreen"));
 // ========== AI TEACHING ASSISTANT TOOLS ==========
 const AIToolsHomeScreen = lazy(() => import("./screens/ai/AIToolsHomeScreen"));
 const LessonPlanScreen = lazy(() => import("./screens/ai/LessonPlanScreen"));
-const SchemesOfWorkScreen = lazy(() => import("./screens/ai/SchemesOfWorkScreen"));
-const RecordsOfWorkScreen = lazy(() => import("./screens/ai/RecordsOfWorkScreen"));
-const WeeklyForecastScreen = lazy(() => import("./screens/ai/WeeklyForecastScreen"));
+const SchemesOfWorkScreen = lazy(
+  () => import("./screens/ai/SchemesOfWorkScreen"),
+);
+const RecordsOfWorkScreen = lazy(
+  () => import("./screens/ai/RecordsOfWorkScreen"),
+);
+const WeeklyForecastScreen = lazy(
+  () => import("./screens/ai/WeeklyForecastScreen"),
+);
+const AIReportGeneratorScreen = lazy(
+  () => import("./screens/AIReportGeneratorScreen"),
+);
 
 // Loading fallback
 function LoadingScreen() {
@@ -626,6 +635,15 @@ function AppRouterContent() {
             element={
               <ProtectedRoute>
                 <ExportManagerScreen />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/ai-reports/:classId/:testType/:term/:year"
+            element={
+              <ProtectedRoute>
+                <AIReportGeneratorScreen />
               </ProtectedRoute>
             }
           />

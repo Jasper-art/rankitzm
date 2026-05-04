@@ -229,7 +229,11 @@ export default function ReportsScreen() {
       return;
     }
 
-    if (reportId === "custom") {
+    if (reportId === "ai-reports") {
+      navigate(
+        `/ai-reports/${selectedClass}/endofterm/${currentTerm}/${currentYear}`,
+      );
+    } else if (reportId === "custom") {
       navigate("/reports/custom");
     } else if (reportId === "end-of-term") {
       navigate(
@@ -781,6 +785,28 @@ export default function ReportsScreen() {
                         onClick={() => handleGenerateReport(report.id)}
                       />
                     ))}
+                    <ReportCard
+                      key="ai-reports"
+                      report={{
+                        id: "ai-reports",
+                        name: "AI Report Generator",
+                        icon: "🤖",
+                        description:
+                          "Generate professional report card comments for all learners using AI. Saves hours of writing.",
+                        category: "Advanced",
+                        badge: "NEW",
+                        color: "#10B981",
+                      }}
+                      t={t}
+                      isMobile={isMobile}
+                      hovered={hoveredReport === "ai-reports"}
+                      onHover={setHoveredReport}
+                      onClick={() =>
+                        navigate(
+                          `/ai-reports/${selectedClass}/${currentTerm.replace(" ", "")}/${currentTerm}/${currentYear}`,
+                        )
+                      }
+                    />
                   </div>
                 </div>
 

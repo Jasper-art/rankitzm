@@ -126,7 +126,7 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
   // Log state changes for debugging
   useEffect(() => {
     const logState = () => {
-      if (process.env.NODE_ENV === "development") {
+      if (import.meta.env.DEV) {
         console.log("📊 RankItZM Offline State:", {
           isOnline,
           isOffline,
@@ -139,7 +139,7 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
     };
 
     // Log state every 30 seconds in dev mode
-    if (process.env.NODE_ENV === "development") {
+    if (import.meta.env.DEV) {
       const interval = setInterval(logState, 30000);
       return () => clearInterval(interval);
     }

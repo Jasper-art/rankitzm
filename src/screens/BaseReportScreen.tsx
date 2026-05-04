@@ -1173,6 +1173,49 @@ export default function BaseReportScreen() {
                 {icons.download}
                 PDF
               </button>
+
+              <button
+                onClick={() =>
+                  navigate(
+                    `/ai-reports/${classId}/${routeTestType}/${routeTerm}/${routeYear}`,
+                  )
+                }
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: 8,
+                  border: `1.5px solid ${t.accent}`,
+                  background: t.accentBg,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  color: t.accent,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  gap: 6,
+                  transition: "all 0.3s ease",
+                  textTransform: "uppercase",
+                  letterSpacing: "-0.2px",
+                  whiteSpace: "nowrap",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background =
+                    t.accent;
+                  (e.currentTarget as HTMLButtonElement).style.color = "#fff";
+                  (e.currentTarget as HTMLButtonElement).style.transform =
+                    "translateY(-2px)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background =
+                    t.accentBg;
+                  (e.currentTarget as HTMLButtonElement).style.color = t.accent;
+                  (e.currentTarget as HTMLButtonElement).style.transform =
+                    "translateY(0)";
+                }}
+                title="AI Report Generator"
+              >
+                🤖 AI Reports
+              </button>
             </>
           )}
 
