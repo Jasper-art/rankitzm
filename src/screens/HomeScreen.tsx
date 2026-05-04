@@ -528,33 +528,27 @@ export default function HomeScreen() {
         >
           RankIT
         </div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: isMobile ? 8 : 16,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              background: isOnline ? t.accentLighter : t.redBg,
-              color: isOnline ? t.accentText : t.redText,
-              fontSize: isMobile ? 10 : 11,
-              fontWeight: 700,
-              padding: "6px 10px",
-              borderRadius: 20,
-              border: `1px solid ${isOnline ? t.accent + "40" : t.red + "40"}`,
-            }}
-          >
-            <div style={{ width: 10, height: 10 }}>
-              {isOnline ? Icons.wifi : Icons.wifiOff}
-            </div>
-            {!isMobile && <span>{isOnline ? "Online" : "Offline"}</span>}
-          </div>
-          {!isMobile && (
+        {!isMobile && (
+          <>
+            <button
+              onClick={() => navigate("/ai-assistant")}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 8,
+                border: `1.5px solid ${t.border}`,
+                background: t.accentBg,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                color: t.accent,
+                fontSize: 18,
+              }}
+              title="AI Assistant"
+            >
+              🤖
+            </button>
             <button
               onClick={() => navigate("/settings/school")}
               style={{
@@ -572,8 +566,8 @@ export default function HomeScreen() {
             >
               <div style={{ width: 20, height: 20 }}>☰</div>
             </button>
-          )}
-        </div>
+          </>
+        )}
       </header>
 
       {/* Main Content */}
@@ -884,6 +878,14 @@ export default function HomeScreen() {
                   onClick={() => navigate("/reports")}
                   t={t}
                 />
+                <QuickActionBtn
+                  icon="🤖"
+                  color={t.accent}
+                  label="AI Assistant"
+                  subtitle="Chat with AI"
+                  onClick={() => navigate("/ai-assistant")}
+                  t={t}
+                />
               </>
             )}
           </div>
@@ -908,36 +910,36 @@ export default function HomeScreen() {
       `}</style>
     </div>
   );
+}
+function AISchoolSummaryCard({
+  schoolName,
+  totalClasses,
+  totalLearners,
+  tableRows,
+  t,
+  isMobile,
+}: {
+  schoolName: string;
+  totalClasses: number;
+  totalLearners: number;
+  tableRows: { name: string; level: string; students: number }[];
+  t: Theme;
+  isMobile: boolean;
+}) {
+  const [summary, setSummary] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [generated, setGenerated] = useState(false);
 
-  function AISchoolSummaryCard({
-    schoolName,
-    totalClasses,
-    totalLearners,
-    tableRows,
-    t,
-    isMobile,
-  }: {
-    schoolName: string;
-    totalClasses: number;
-    totalLearners: number;
-    tableRows: { name: string; level: string; students: number }[];
-    t: Theme;
-    isMobile: boolean;
-  }) {
-    const [summary, setSummary] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
-    const [generated, setGenerated] = useState(false);
+  const handleGenerate = async () => {
+    setLoading(true);
+    setError("");
 
-    const handleGenerate = async () => {
-      setLoading(true);
-      setError("");
+    const classBreakdown = tableRows
+      .map((r) => `${r.name} (${r.level}, ${r.students} students)`)
+      .join(", ");
 
-      const classBreakdown = tableRows
-        .map((r) => `${r.name} (${r.level}, ${r.students} students)`)
-        .join(", ");
-
-      const prompt = `You are a Zambian school management assistant. Write a 2-3 sentence professional school overview summary for the headteacher's dashboard.
+    const prompt = `You are a Zambian school management assistant. Write a 2-3 sentence professional school overview summary for the headteacher's dashboard.
 
 SCHOOL: ${schoolName}
 TOTAL CLASSES: ${totalClasses}
@@ -946,157 +948,156 @@ CLASSES: ${classBreakdown || "No classes yet"}
 
 Write a warm, professional summary suitable for a school dashboard. Be specific about the numbers. Keep it concise.`;
 
-      try {
-        const response = await fetch(
-          "https://api.groq.com/openai/v1/chat/completions",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${(import.meta as any).env?.VITE_GROQ_API_KEY || ""}`,
-            },
-            body: JSON.stringify({
-              model: "llama-3.3-70b-versatile",
-              messages: [{ role: "user", content: prompt }],
-              max_tokens: 150,
-              temperature: 0.6,
-            }),
+    try {
+      const response = await fetch(
+        "https://api.groq.com/openai/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${(import.meta as any).env?.VITE_GROQ_API_KEY || ""}`,
           },
-        );
+          body: JSON.stringify({
+            model: "llama-3.3-70b-versatile",
+            messages: [{ role: "user", content: prompt }],
+            max_tokens: 150,
+            temperature: 0.6,
+          }),
+        },
+      );
 
-        if (!response.ok) throw new Error("API error");
-        const data = await response.json();
-        setSummary(data.choices?.[0]?.message?.content?.trim() || "");
-        setGenerated(true);
-      } catch (err) {
-        setError("Failed to generate summary.");
-      } finally {
-        setLoading(false);
-      }
-    };
+      if (!response.ok) throw new Error("API error");
+      const data = await response.json();
+      setSummary(data.choices?.[0]?.message?.content?.trim() || "");
+      setGenerated(true);
+    } catch (err) {
+      setError("Failed to generate summary.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return (
+  return (
+    <div
+      style={{
+        background: t.surface,
+        border: `1.5px solid ${t.accent}30`,
+        borderRadius: isMobile ? 12 : 16,
+        padding: isMobile ? 14 : 20,
+        marginBottom: isMobile ? 20 : 32,
+        boxShadow: `0 2px 6px ${t.shadow}`,
+      }}
+    >
       <div
         style={{
-          background: t.surface,
-          border: `1.5px solid ${t.accent}30`,
-          borderRadius: isMobile ? 12 : 16,
-          padding: isMobile ? 14 : 20,
-          marginBottom: isMobile ? 20 : 32,
-          boxShadow: `0 2px 6px ${t.shadow}`,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: t.accentLighter,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 18,
-              }}
-            >
-              🤖
-            </div>
-            <div>
-              <div
-                style={{
-                  fontSize: isMobile ? 13 : 14,
-                  fontWeight: 700,
-                  color: t.text,
-                }}
-              >
-                AI School Summary
-              </div>
-              <div style={{ fontSize: 11, color: t.textMuted, marginTop: 1 }}>
-                Instant overview for headteacher
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={handleGenerate}
-            disabled={loading}
-            style={{
-              padding: isMobile ? "7px 12px" : "8px 16px",
-              borderRadius: 8,
-              border: "none",
-              background: loading ? t.border : t.accent,
-              color: "#fff",
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: loading ? "not-allowed" : "pointer",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {loading ? "..." : generated ? "🔄 Refresh" : "✨ Generate"}
-          </button>
-        </div>
-
-        {error && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div
             style={{
-              marginTop: 10,
-              background: t.redBg,
-              color: t.red,
-              padding: 10,
-              borderRadius: 8,
-              fontSize: 12,
-            }}
-          >
-            ⚠️ {error}
-          </div>
-        )}
-
-        {loading && (
-          <div
-            style={{
-              marginTop: 12,
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: t.accentLighter,
               display: "flex",
               alignItems: "center",
-              gap: 10,
-              color: t.textMuted,
-              fontSize: 13,
+              justifyContent: "center",
+              fontSize: 18,
             }}
           >
+            🤖
+          </div>
+          <div>
             <div
               style={{
-                width: 16,
-                height: 16,
-                borderRadius: "50%",
-                border: `2px solid ${t.border}`,
-                borderTopColor: t.accent,
-                animation: "spin 0.8s linear infinite",
+                fontSize: isMobile ? 13 : 14,
+                fontWeight: 700,
+                color: t.text,
               }}
-            />
-            Generating summary...
+            >
+              AI School Summary
+            </div>
+            <div style={{ fontSize: 11, color: t.textMuted, marginTop: 1 }}>
+              Instant overview for headteacher
+            </div>
           </div>
-        )}
-
-        {summary && !loading && (
-          <p
-            style={{
-              marginTop: 14,
-              fontSize: isMobile ? 13 : 14,
-              color: t.text,
-              lineHeight: 1.7,
-              margin: "14px 0 0",
-              fontWeight: 500,
-            }}
-          >
-            {summary}
-          </p>
-        )}
+        </div>
+        <button
+          onClick={handleGenerate}
+          disabled={loading}
+          style={{
+            padding: isMobile ? "7px 12px" : "8px 16px",
+            borderRadius: 8,
+            border: "none",
+            background: loading ? t.border : t.accent,
+            color: "#fff",
+            fontSize: 12,
+            fontWeight: 700,
+            cursor: loading ? "not-allowed" : "pointer",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {loading ? "..." : generated ? "🔄 Refresh" : "✨ Generate"}
+        </button>
       </div>
-    );
-  }
+
+      {error && (
+        <div
+          style={{
+            marginTop: 10,
+            background: t.redBg,
+            color: t.red,
+            padding: 10,
+            borderRadius: 8,
+            fontSize: 12,
+          }}
+        >
+          ⚠️ {error}
+        </div>
+      )}
+
+      {loading && (
+        <div
+          style={{
+            marginTop: 12,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            color: t.textMuted,
+            fontSize: 13,
+          }}
+        >
+          <div
+            style={{
+              width: 16,
+              height: 16,
+              borderRadius: "50%",
+              border: `2px solid ${t.border}`,
+              borderTopColor: t.accent,
+              animation: "spin 0.8s linear infinite",
+            }}
+          />
+          Generating summary...
+        </div>
+      )}
+
+      {summary && !loading && (
+        <p
+          style={{
+            marginTop: 14,
+            fontSize: isMobile ? 13 : 14,
+            color: t.text,
+            lineHeight: 1.7,
+            margin: "14px 0 0",
+            fontWeight: 500,
+          }}
+        >
+          {summary}
+        </p>
+      )}
+    </div>
+  );
 }
