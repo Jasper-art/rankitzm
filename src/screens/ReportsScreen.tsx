@@ -803,12 +803,87 @@ export default function ReportsScreen() {
                       onHover={setHoveredReport}
                       onClick={() =>
                         navigate(
-                          `/ai-reports/${selectedClass}/${currentTerm.replace(" ", "")}/${currentTerm}/${currentYear}`,
+                          `/ai-reports/${selectedClass}/endofterm/${currentTerm}/${currentYear}`,
                         )
                       }
                     />
                   </div>
                 </div>
+
+                {/* AI Reports Mobile Button */}
+                {isMobile && (
+                  <div style={{ marginBottom: 24 }}>
+                    <button
+                      onClick={() =>
+                        navigate(
+                          `/ai-reports/${selectedClass}/endofterm/${currentTerm}/${currentYear}`,
+                        )
+                      }
+                      style={{
+                        width: "100%",
+                        padding: "16px 20px",
+                        borderRadius: 12,
+                        border: `2px solid ${t.accent}`,
+                        background: t.accentLighter,
+                        color: t.accentDark,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 16,
+                        textAlign: "left",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: 10,
+                          background: t.accent,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 22,
+                          flexShrink: 0,
+                        }}
+                      >
+                        🤖
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div
+                          style={{
+                            fontSize: 15,
+                            fontWeight: 800,
+                            color: t.accentDark,
+                          }}
+                        >
+                          AI Report Generator
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            color: t.accentText,
+                            marginTop: 2,
+                            fontWeight: 500,
+                          }}
+                        >
+                          Generate comments for all learners instantly
+                        </div>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 800,
+                          background: t.accent,
+                          color: "#fff",
+                          padding: "3px 8px",
+                          borderRadius: 6,
+                        }}
+                      >
+                        NEW
+                      </span>
+                    </button>
+                  </div>
+                )}
 
                 {/* Quick Actions List */}
                 <div style={{ marginBottom: 32 }}>
