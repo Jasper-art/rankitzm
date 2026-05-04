@@ -1237,6 +1237,16 @@ export default function AnalyticsReportScreen() {
             </div>
           </div>
 
+          {/* AI Performance Analysis */}
+          <AIAnalysisPanel
+            analytics={analytics}
+            className={selectedClassEntity.className}
+            term={selectedTerm || "All Terms"}
+            educationLevel={currentLevel}
+            t={t}
+            isMobile={isMobile}
+          />
+
           {/* Passing Criteria Info */}
           <div
             style={{
@@ -1442,6 +1452,400 @@ function GenderPerformanceBox(props: {
           </span>
         </div>
       </div>
+    </div>
+  );
+}
+
+function AIAnalysisPanel(props: {
+  analytics: AnalyticsData;
+  className: string;
+  term: string;
+  educationLevel: string;
+  t: Theme;
+  isMobile: boolean;
+}) {
+  const { analytics, className, term, educationLevel, t, isMobile } = props;
+  const [aiInsights, setAiInsights] = useState<{
+    overview: string;
+    strengths: string[];
+    weaknesses: string[];
+    genderAnalysis: string;
+    recommendations: string[];
+  } | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    setError(null);
+
+    const topSubjects = analytics.subjectAnalysis
+      .slice(0, 3)
+      .map((s) => `${s.name} (${s.qualityPassRate.toFixed(0)}%)`)
+      .join(", ");
+    const weakSubjects = analytics.subjectAnalysis
+      .slice(-2)
+      .map((s) => `${s.name} (${s.qualityPassRate.toFixed(0)}%)`)
+      .join(", ");
+
+    const prompt = `You are an experienced Zambian school headteacher writing a performance analysis report.
+
+CLASS: ${className}
+TERM: ${term}
+EDUCATION LEVEL: ${educationLevel}
+TOTAL STUDENTS: ${analytics.totalStudents}
+PRESENT: ${analytics.studentsPresent}
+QUANTITY PASS RATE: ${analytics.quantityPassRate.toFixed(1)}%
+QUALITY PASS RATE: ${analytics.qualityPassRate.toFixed(1)}%
+PASSED: ${analytics.totalPassed}, FAILED: ${analytics.totalFailed}
+MALE: ${analytics.maleCount} (Quality Pass: ${analytics.maleQualityPass}, Qty Pass: ${analytics.maleQuantityPass})
+FEMALE: ${analytics.femaleCount} (Quality Pass: ${analytics.femaleQualityPass}, Qty Pass: ${analytics.femaleQuantityPass})
+TOP SUBJECTS: ${topSubjects}
+WEAK SUBJECTS: ${weakSubjects}
+
+Respond ONLY in this exact JSON format with no other text:
+{
+  "overview": "3-4 sentence professional class overview",
+  "strengths": ["strength 1", "strength 2", "strength 3"],
+  "weaknesses": ["weakness 1", "weakness 2"],
+  "genderAnalysis": "2-3 sentence gender gap analysis",
+  "recommendations": ["recommendation 1", "recommendation 2", "recommendation 3"]
+}`;
+
+    try {
+      const response = await fetch(
+        "https://api.groq.com/openai/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${(import.meta as any).env?.VITE_GROQ_API_KEY || ""}`,
+          },
+          body: JSON.stringify({
+            model: "llama-3.3-70b-versatile",
+            messages: [{ role: "user", content: prompt }],
+            max_tokens: 600,
+            temperature: 0.6,
+          }),
+        },
+      );
+
+      if (!response.ok) throw new Error("Groq API error");
+      const data = await response.json();
+      const raw = data.choices?.[0]?.message?.content || "";
+      const clean = raw.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(clean);
+      setAiInsights(parsed);
+    } catch (err) {
+      setError("Failed to generate insights. Try again.");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        background: t.surface,
+        border: `1.5px solid ${t.accent}30`,
+        borderRadius: 12,
+        padding: isMobile ? 14 : 20,
+        marginBottom: 20,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: aiInsights ? 16 : 0,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              background: t.accentLighter,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 18,
+            }}
+          >
+            🤖
+          </div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: t.text }}>
+              AI Performance Analysis
+            </div>
+            <div style={{ fontSize: 11, color: t.textMuted, marginTop: 1 }}>
+              {className} • {term}
+            </div>
+          </div>
+        </div>
+        {!aiInsights && (
+          <button
+            onClick={handleGenerate}
+            disabled={generating}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 8,
+              border: "none",
+              background: generating ? t.border : t.accent,
+              color: "#fff",
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: generating ? "not-allowed" : "pointer",
+            }}
+          >
+            {generating ? "Analysing..." : "✨ Generate Insights"}
+          </button>
+        )}
+        {aiInsights && (
+          <button
+            onClick={() => setAiInsights(null)}
+            style={{
+              padding: "6px 12px",
+              borderRadius: 8,
+              border: `1px solid ${t.border}`,
+              background: t.surfaceAlt,
+              color: t.textMuted,
+              fontSize: 11,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            🔄 Regenerate
+          </button>
+        )}
+      </div>
+
+      {error && (
+        <div
+          style={{
+            background: t.redBg,
+            color: t.red,
+            padding: 10,
+            borderRadius: 8,
+            fontSize: 12,
+            marginTop: 12,
+          }}
+        >
+          ⚠️ {error}
+        </div>
+      )}
+
+      {generating && (
+        <div
+          style={{
+            textAlign: "center",
+            padding: "24px 0",
+            color: t.textMuted,
+            fontSize: 13,
+          }}
+        >
+          <div
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: "50%",
+              border: `2px solid ${t.border}`,
+              borderTopColor: t.accent,
+              animation: "spin 0.8s linear infinite",
+              margin: "0 auto 10px",
+            }}
+          />
+          Analysing class performance...
+        </div>
+      )}
+
+      {aiInsights && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div
+            style={{
+              background: t.surfaceAlt,
+              borderRadius: "0 10px 10px 0",
+              padding: 14,
+              borderLeft: `3px solid ${t.accent}`,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: t.textMuted,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                marginBottom: 8,
+              }}
+            >
+              Class Overview
+            </div>
+            <p
+              style={{
+                fontSize: 13,
+                color: t.text,
+                lineHeight: 1.7,
+                margin: 0,
+              }}
+            >
+              {aiInsights.overview}
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+              gap: 12,
+            }}
+          >
+            <div
+              style={{
+                background: t.surfaceAlt,
+                borderRadius: 10,
+                padding: 14,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: "#10B981",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  marginBottom: 10,
+                }}
+              >
+                Strengths
+              </div>
+              {aiInsights.strengths.map((s, i) => (
+                <div
+                  key={i}
+                  style={{ display: "flex", gap: 8, marginBottom: 6 }}
+                >
+                  <span
+                    style={{ color: "#10B981", fontSize: 14, flexShrink: 0 }}
+                  >
+                    ✓
+                  </span>
+                  <span
+                    style={{ fontSize: 12, color: t.text, lineHeight: 1.5 }}
+                  >
+                    {s}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div
+              style={{
+                background: t.surfaceAlt,
+                borderRadius: 10,
+                padding: 14,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: t.red,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  marginBottom: 10,
+                }}
+              >
+                Needs Attention
+              </div>
+              {aiInsights.weaknesses.map((w, i) => (
+                <div
+                  key={i}
+                  style={{ display: "flex", gap: 8, marginBottom: 6 }}
+                >
+                  <span style={{ color: t.red, fontSize: 14, flexShrink: 0 }}>
+                    →
+                  </span>
+                  <span
+                    style={{ fontSize: 12, color: t.text, lineHeight: 1.5 }}
+                  >
+                    {w}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div
+            style={{ background: t.surfaceAlt, borderRadius: 10, padding: 14 }}
+          >
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: t.textMuted,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                marginBottom: 8,
+              }}
+            >
+              Gender Gap Analysis
+            </div>
+            <p
+              style={{
+                fontSize: 13,
+                color: t.text,
+                lineHeight: 1.7,
+                margin: 0,
+              }}
+            >
+              {aiInsights.genderAnalysis}
+            </p>
+          </div>
+
+          <div
+            style={{ background: t.surfaceAlt, borderRadius: 10, padding: 14 }}
+          >
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: t.textMuted,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                marginBottom: 10,
+              }}
+            >
+              Recommendations for Next Term
+            </div>
+            {aiInsights.recommendations.map((rec, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  marginBottom: 8,
+                  alignItems: "flex-start",
+                }}
+              >
+                <span
+                  style={{
+                    color: t.accent,
+                    fontSize: 14,
+                    flexShrink: 0,
+                    marginTop: 1,
+                  }}
+                >
+                  →
+                </span>
+                <span style={{ fontSize: 12, color: t.text, lineHeight: 1.6 }}>
+                  {rec}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -144,7 +144,7 @@ const WeeklyForecastScreen = lazy(
 const AIReportGeneratorScreen = lazy(
   () => import("./screens/AIReportGeneratorScreen"),
 );
-
+const AIAssistantScreen = lazy(() => import("./screens/AIAssistantScreen"));
 // Loading fallback
 function LoadingScreen() {
   return (
@@ -644,6 +644,15 @@ function AppRouterContent() {
             element={
               <ProtectedRoute>
                 <AIReportGeneratorScreen />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/ai-assistant"
+            element={
+              <ProtectedRoute>
+                <AIAssistantScreen />
               </ProtectedRoute>
             }
           />

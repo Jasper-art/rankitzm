@@ -645,6 +645,16 @@ export default function HomeScreen() {
           {/* Pass Rate and Scores stats removed */}
         </div>
 
+        {/* AI School Summary */}
+        <AISchoolSummaryCard
+          schoolName={schoolName}
+          totalClasses={classes.length}
+          totalLearners={learners.length}
+          tableRows={tableRows}
+          t={t}
+          isMobile={isMobile}
+        />
+
         {/* Classes Section (Mobile: Stacked Cards | Desktop: Table) */}
         <div style={{ marginBottom: isMobile ? 20 : 32 }}>
           <h2
@@ -898,4 +908,195 @@ export default function HomeScreen() {
       `}</style>
     </div>
   );
+
+  function AISchoolSummaryCard({
+    schoolName,
+    totalClasses,
+    totalLearners,
+    tableRows,
+    t,
+    isMobile,
+  }: {
+    schoolName: string;
+    totalClasses: number;
+    totalLearners: number;
+    tableRows: { name: string; level: string; students: number }[];
+    t: Theme;
+    isMobile: boolean;
+  }) {
+    const [summary, setSummary] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [generated, setGenerated] = useState(false);
+
+    const handleGenerate = async () => {
+      setLoading(true);
+      setError("");
+
+      const classBreakdown = tableRows
+        .map((r) => `${r.name} (${r.level}, ${r.students} students)`)
+        .join(", ");
+
+      const prompt = `You are a Zambian school management assistant. Write a 2-3 sentence professional school overview summary for the headteacher's dashboard.
+
+SCHOOL: ${schoolName}
+TOTAL CLASSES: ${totalClasses}
+TOTAL LEARNERS: ${totalLearners}
+CLASSES: ${classBreakdown || "No classes yet"}
+
+Write a warm, professional summary suitable for a school dashboard. Be specific about the numbers. Keep it concise.`;
+
+      try {
+        const response = await fetch(
+          "https://api.groq.com/openai/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${(import.meta as any).env?.VITE_GROQ_API_KEY || ""}`,
+            },
+            body: JSON.stringify({
+              model: "llama-3.3-70b-versatile",
+              messages: [{ role: "user", content: prompt }],
+              max_tokens: 150,
+              temperature: 0.6,
+            }),
+          },
+        );
+
+        if (!response.ok) throw new Error("API error");
+        const data = await response.json();
+        setSummary(data.choices?.[0]?.message?.content?.trim() || "");
+        setGenerated(true);
+      } catch (err) {
+        setError("Failed to generate summary.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    return (
+      <div
+        style={{
+          background: t.surface,
+          border: `1.5px solid ${t.accent}30`,
+          borderRadius: isMobile ? 12 : 16,
+          padding: isMobile ? 14 : 20,
+          marginBottom: isMobile ? 20 : 32,
+          boxShadow: `0 2px 6px ${t.shadow}`,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: t.accentLighter,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 18,
+              }}
+            >
+              🤖
+            </div>
+            <div>
+              <div
+                style={{
+                  fontSize: isMobile ? 13 : 14,
+                  fontWeight: 700,
+                  color: t.text,
+                }}
+              >
+                AI School Summary
+              </div>
+              <div style={{ fontSize: 11, color: t.textMuted, marginTop: 1 }}>
+                Instant overview for headteacher
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={handleGenerate}
+            disabled={loading}
+            style={{
+              padding: isMobile ? "7px 12px" : "8px 16px",
+              borderRadius: 8,
+              border: "none",
+              background: loading ? t.border : t.accent,
+              color: "#fff",
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: loading ? "not-allowed" : "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {loading ? "..." : generated ? "🔄 Refresh" : "✨ Generate"}
+          </button>
+        </div>
+
+        {error && (
+          <div
+            style={{
+              marginTop: 10,
+              background: t.redBg,
+              color: t.red,
+              padding: 10,
+              borderRadius: 8,
+              fontSize: 12,
+            }}
+          >
+            ⚠️ {error}
+          </div>
+        )}
+
+        {loading && (
+          <div
+            style={{
+              marginTop: 12,
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              color: t.textMuted,
+              fontSize: 13,
+            }}
+          >
+            <div
+              style={{
+                width: 16,
+                height: 16,
+                borderRadius: "50%",
+                border: `2px solid ${t.border}`,
+                borderTopColor: t.accent,
+                animation: "spin 0.8s linear infinite",
+              }}
+            />
+            Generating summary...
+          </div>
+        )}
+
+        {summary && !loading && (
+          <p
+            style={{
+              marginTop: 14,
+              fontSize: isMobile ? 13 : 14,
+              color: t.text,
+              lineHeight: 1.7,
+              margin: "14px 0 0",
+              fontWeight: 500,
+            }}
+          >
+            {summary}
+          </p>
+        )}
+      </div>
+    );
+  }
 }

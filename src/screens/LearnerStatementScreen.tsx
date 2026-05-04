@@ -726,6 +726,20 @@ export default function LearnerStatementScreen() {
         </div>
       </header>
 
+      {/* AI Student Insights Panel */}
+      {!loading && learner && scoresBySubject.size > 0 && (
+        <AIStudentInsightsPanel
+          learner={learner}
+          scoresBySubject={scoresBySubject}
+          subjects={subjects}
+          educationLevel={educationLevel}
+          overallAverage={getOverallAveragePercent()}
+          performanceSummary={getPerformanceSummary()}
+          t={t}
+          isMobile={isMobile}
+        />
+      )}
+
       {/* Main Content Area */}
       <main
         style={
@@ -1351,6 +1365,347 @@ function SummaryMetric({
       >
         {value}
       </div>
+    </div>
+  );
+}
+function AIStudentInsightsPanel(props: {
+  learner: LearnerEntity;
+  scoresBySubject: Map<number, ScoreSummary>;
+  subjects: SubjectEntity[];
+  educationLevel: string;
+  overallAverage: number;
+  performanceSummary: string;
+  t: Theme;
+  isMobile: boolean;
+}) {
+  const {
+    learner,
+    scoresBySubject,
+    subjects,
+    educationLevel,
+    overallAverage,
+    performanceSummary,
+    t,
+    isMobile,
+  } = props;
+  const [insights, setInsights] = useState<{
+    summary: string;
+    strengths: string[];
+    weaknesses: string[];
+    recommendation: string;
+  } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const handleGenerate = async () => {
+    setLoading(true);
+    setError("");
+
+    const subjectData = Array.from(scoresBySubject.entries())
+      .map(([subjectId, summary]) => {
+        const sub = subjects.find((s) => s.id === subjectId);
+        const maxMark = sub?.maxMark || 100;
+        return `${summary.subjectName}: ${summary.average}/${maxMark} (${Math.round((summary.average / maxMark) * 100)}%)`;
+      })
+      .join("\n");
+
+    const topSubjects = Array.from(scoresBySubject.values())
+      .sort((a, b) => b.average - a.average)
+      .slice(0, 2)
+      .map((s) => s.subjectName)
+      .join(", ");
+
+    const weakSubjects = Array.from(scoresBySubject.values())
+      .sort((a, b) => a.average - b.average)
+      .slice(0, 2)
+      .map((s) => s.subjectName)
+      .join(", ");
+
+    const prompt = `You are a Zambian school teacher writing a personal academic insights report for a student.
+
+STUDENT: ${learner.name}
+GENDER: ${learner.gender}
+EDUCATION LEVEL: ${educationLevel}
+OVERALL AVERAGE: ${overallAverage}%
+PERFORMANCE: ${performanceSummary}
+
+SUBJECT RESULTS:
+${subjectData}
+
+STRONGEST SUBJECTS: ${topSubjects}
+WEAKEST SUBJECTS: ${weakSubjects}
+
+Respond ONLY in this exact JSON format:
+{
+  "summary": "2-3 sentence personal academic summary for this student",
+  "strengths": ["strength 1", "strength 2"],
+  "weaknesses": ["area needing improvement 1", "area needing improvement 2"],
+  "recommendation": "One specific, actionable recommendation for this student's improvement"
+}`;
+
+    try {
+      const response = await fetch(
+        "https://api.groq.com/openai/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${(import.meta as any).env?.VITE_GROQ_API_KEY || ""}`,
+          },
+          body: JSON.stringify({
+            model: "llama-3.3-70b-versatile",
+            messages: [{ role: "user", content: prompt }],
+            max_tokens: 400,
+            temperature: 0.7,
+          }),
+        },
+      );
+
+      if (!response.ok) throw new Error("API error");
+      const data = await response.json();
+      const raw = data.choices?.[0]?.message?.content || "";
+      const clean = raw.replace(/```json|```/g, "").trim();
+      setInsights(JSON.parse(clean));
+      setOpen(true);
+    } catch (err) {
+      setError("Failed to generate insights. Try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        background: t.surface,
+        borderBottom: `1px solid ${t.border}`,
+        padding: isMobile ? "12px 14px" : "14px 24px",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 18 }}>🤖</span>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>
+              AI Student Insights
+            </div>
+            <div style={{ fontSize: 11, color: t.textMuted }}>
+              Personalised analysis for {learner.name}
+            </div>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          {insights && (
+            <button
+              onClick={() => setOpen((v) => !v)}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 8,
+                border: `1px solid ${t.border}`,
+                background: t.surfaceAlt,
+                color: t.textMuted,
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              {open ? "Hide" : "Show"}
+            </button>
+          )}
+          <button
+            onClick={handleGenerate}
+            disabled={loading}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 8,
+              border: "none",
+              background: loading ? t.border : t.accent,
+              color: "#fff",
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: loading ? "not-allowed" : "pointer",
+            }}
+          >
+            {loading
+              ? "Analysing..."
+              : insights
+                ? "🔄 Regenerate"
+                : "✨ Generate"}
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div
+          style={{
+            marginTop: 10,
+            background: t.redBg,
+            color: t.red,
+            padding: 10,
+            borderRadius: 8,
+            fontSize: 12,
+          }}
+        >
+          ⚠️ {error}
+        </div>
+      )}
+
+      {insights && open && (
+        <div
+          style={{
+            marginTop: 14,
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          <div
+            style={{
+              background: t.surfaceAlt,
+              borderRadius: "0 10px 10px 0",
+              padding: 14,
+              borderLeft: `3px solid ${t.accent}`,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: t.textMuted,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                marginBottom: 6,
+              }}
+            >
+              Personal Summary
+            </div>
+            <p
+              style={{
+                fontSize: 13,
+                color: t.text,
+                lineHeight: 1.7,
+                margin: 0,
+              }}
+            >
+              {insights.summary}
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+              gap: 10,
+            }}
+          >
+            <div
+              style={{
+                background: t.surfaceAlt,
+                borderRadius: 10,
+                padding: 14,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: "#10B981",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  marginBottom: 8,
+                }}
+              >
+                Strengths
+              </div>
+              {insights.strengths.map((s, i) => (
+                <div
+                  key={i}
+                  style={{ display: "flex", gap: 8, marginBottom: 5 }}
+                >
+                  <span style={{ color: "#10B981", flexShrink: 0 }}>✓</span>
+                  <span
+                    style={{ fontSize: 12, color: t.text, lineHeight: 1.5 }}
+                  >
+                    {s}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div
+              style={{
+                background: t.surfaceAlt,
+                borderRadius: 10,
+                padding: 14,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: t.red,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  marginBottom: 8,
+                }}
+              >
+                Needs Improvement
+              </div>
+              {insights.weaknesses.map((w, i) => (
+                <div
+                  key={i}
+                  style={{ display: "flex", gap: 8, marginBottom: 5 }}
+                >
+                  <span style={{ color: t.red, flexShrink: 0 }}>→</span>
+                  <span
+                    style={{ fontSize: 12, color: t.text, lineHeight: 1.5 }}
+                  >
+                    {w}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: t.accentLighter || t.surfaceAlt,
+              borderRadius: 10,
+              padding: 14,
+              border: `1px solid ${t.accent}30`,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: t.accent,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                marginBottom: 6,
+              }}
+            >
+              Key Recommendation
+            </div>
+            <p
+              style={{
+                fontSize: 13,
+                color: t.text,
+                lineHeight: 1.7,
+                margin: 0,
+              }}
+            >
+              {insights.recommendation}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
