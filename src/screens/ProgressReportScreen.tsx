@@ -152,7 +152,9 @@ export default function ProgressReportScreen() {
 
   const [selectedClass, setSelectedClass] = useState<number | null>(null);
   const [selectedLearner, setSelectedLearner] = useState<number | null>(null);
-  const [compareMode, setCompareMode] = useState<"class" | "learner" | "subject">("class");
+  const [compareMode, setCompareMode] = useState<
+    "class" | "learner" | "subject"
+  >("class");
 
   const [availableSubjectIds, setAvailableSubjectIds] = useState<number[]>([]);
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(
@@ -179,24 +181,31 @@ export default function ProgressReportScreen() {
       const dataToAnalyze = JSON.stringify({
         mode: compareMode,
         progress: displayProgress,
-        learner: selectedLearner ? learners.find((l) => l.id === selectedLearner)?.name : null,
-        class: selectedClass ? classes.find((c) => c.id === selectedClass)?.className : null,
+        learner: selectedLearner
+          ? learners.find((l) => l.id === selectedLearner)?.name
+          : null,
+        class: selectedClass
+          ? classes.find((c) => c.id === selectedClass)?.className
+          : null,
       });
 
       const prompt = `Analyze this learner/class progress trajectory and provide 3-4 sentence insights:\n\nData: ${dataToAnalyze}\n\nFocus on: (1) overall trend (improving/stable/declining), (2) which terms were strongest/weakest, (3) per-subject momentum, (4) ONE specific action for next term.`;
 
-      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`,
+      const response = await fetch(
+        "https://api.groq.com/openai/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: "llama-3.3-70b-versatile",
+            messages: [{ role: "user", content: prompt }],
+            max_tokens: 280,
+          }),
         },
-        body: JSON.stringify({
-          model: "mixtral-8x7b-32768",
-          messages: [{ role: "user", content: prompt }],
-          max_tokens: 280,
-        }),
-      });
+      );
 
       if (!response.ok) throw new Error("API error");
       const result = await response.json();
@@ -944,7 +953,7 @@ export default function ProgressReportScreen() {
           ))}
         </div>
 
- {/* Compare Mode Selector */}
+        {/* Compare Mode Selector */}
         <div
           style={{
             display: "flex",
@@ -979,70 +988,71 @@ export default function ProgressReportScreen() {
         </div>
 
         {/* AI Insights Card */}
-        {!loading && (displayProgress.length > 0 || compareMode === "subject") && (
-          <div
-            style={{
-              background: t.surface,
-              border: `1px solid ${t.border}`,
-              borderRadius: 12,
-              padding: "16px",
-              marginBottom: 18,
-              borderLeft: `4px solid ${t.accent}`,
-            }}
-          >
+        {!loading &&
+          (displayProgress.length > 0 || compareMode === "subject") && (
             <div
-     style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: aiInsights ? "12px" : "0px",
+              style={{
+                background: t.surface,
+                border: `1px solid ${t.border}`,
+                borderRadius: 12,
+                padding: "16px",
+                marginBottom: 18,
+                borderLeft: `4px solid ${t.accent}`,
               }}
             >
-              <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>
-                🤖 AI Insights
-              </h3>
-              {!aiInsights && (
-                <button
-                  onClick={generateProgressInsights}
-                  disabled={aiLoading}
-                  style={{
-                    padding: "8px 14px",
-                    background: t.accent,
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 6,
-                    cursor: aiLoading ? "not-allowed" : "pointer",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    opacity: aiLoading ? 0.7 : 1,
-                  }}
-                >
-                  {aiLoading ? "Generating..." : "Generate"}
-                </button>
-              )}
-            </div>
-
-            {aiError && (
-              <p style={{ color: t.red, fontSize: 12, margin: 0 }}>
-                {aiError}
-              </p>
-            )}
-
-            {aiInsights && (
-              <p
+              <div
                 style={{
-                  fontSize: 13,
-                  lineHeight: 1.6,
-                  color: t.text,
-                  margin: 0,
-                  fontWeight: 500,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: aiInsights ? "12px" : "0px",
                 }}
               >
-                {aiInsights}
-              </p>
-            )}
-          </div>
-        )}
+                <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>
+                  🤖 AI Insights
+                </h3>
+                {!aiInsights && (
+                  <button
+                    onClick={generateProgressInsights}
+                    disabled={aiLoading}
+                    style={{
+                      padding: "8px 14px",
+                      background: t.accent,
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 6,
+                      cursor: aiLoading ? "not-allowed" : "pointer",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      opacity: aiLoading ? 0.7 : 1,
+                    }}
+                  >
+                    {aiLoading ? "Generating..." : "Generate"}
+                  </button>
+                )}
+              </div>
+
+              {aiError && (
+                <p style={{ color: t.red, fontSize: 12, margin: 0 }}>
+                  {aiError}
+                </p>
+              )}
+
+              {aiInsights && (
+                <p
+                  style={{
+                    fontSize: 13,
+                    lineHeight: 1.6,
+                    color: t.text,
+                    margin: 0,
+                    fontWeight: 500,
+                  }}
+                >
+                  {aiInsights}
+                </p>
+              )}
+            </div>
+          )}
 
         {/* Dynamic Selectors Area */}
         <div
