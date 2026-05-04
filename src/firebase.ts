@@ -15,13 +15,13 @@ import {
 import { db as localDb } from './db';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDOTcUZEQxYHgzXgH3sMC7lv8mubMWh1zo",
-  authDomain: "rankitzm.firebaseapp.com",
-  projectId: "rankitzm",
-  storageBucket: "rankitzm.firebasestorage.app",
-  messagingSenderId: "693105615901",
-  appId: "1:693105615901:web:36cc380d0b68580dd8d2f4",
-  measurementId: "G-HH51TE01G5"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 // Init Firebase only once
