@@ -316,6 +316,12 @@ const navigationItems: NavigationItem[] = [
     path: "/ai-tools",
   },
   {
+    id: "ai-assistant",
+    label: "AI Assistant",
+    icon: <Sparkles size={19} strokeWidth={2.5} />,
+    path: "/ai-assistant",
+  },
+  {
     id: "settings",
     label: "System Config",
     icon: <Settings2 size={19} />,
@@ -326,9 +332,9 @@ const navigationItems: NavigationItem[] = [
 const menuGroups = [
   { title: "Overview", items: navigationItems.slice(0, 3) },
   { title: "Academic Performance", items: navigationItems.slice(3, 5) },
-  { title: "AI Tools", items: navigationItems.slice(5, 6) },
+  { title: "AI Tools", items: navigationItems.slice(5, 7) },
 ];
-const systemGroup = navigationItems.slice(6, 7);
+const systemGroup = navigationItems.slice(7, 8);
 
 // Bottom tab bar shows only the 4 most-used nav items on mobile
 const bottomTabItems = navigationItems.slice(0, 4);
@@ -460,13 +466,17 @@ export function MainLayout({
         bottom: 0,
         left: 0,
         right: 0,
-        height: 60,
-        background: "#1e1b4b",
-        borderTop: "1px solid rgba(255,255,255,0.08)",
+        height: 68,
+        background: dark
+          ? "linear-gradient(180deg, #0f0e23 0%, #1e1b4b 100%)"
+          : "linear-gradient(180deg, #1e1b4b 0%, #0f0e23 100%)",
+        borderTop: "1px solid rgba(99,102,241,0.2)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-around",
         zIndex: 60,
+        paddingBottom: 4,
+        boxShadow: "0 -4px 24px rgba(0,0,0,0.4)",
       }}
     >
       {bottomTabItems.map((item) => {
@@ -481,35 +491,54 @@ export function MainLayout({
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              gap: 3,
+              gap: 4,
               background: "none",
               border: "none",
               cursor: "pointer",
-              color: active ? "#818cf8" : "rgba(148,163,184,0.6)",
+              color: active ? "#818cf8" : "rgba(148,163,184,0.45)",
               minHeight: 48,
               padding: "6px 0",
+              position: "relative",
+              transition: "color 0.2s",
             }}
           >
-            {item.icon}
-            <span
-              style={{
-                fontSize: 9,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}
-            >
-              {item.label.split(" ")[0]}
-            </span>
+            {/* Active pill background */}
             {active && (
               <div
                 style={{
                   position: "absolute",
-                  bottom: 0,
-                  width: 24,
-                  height: 2,
-                  background: "#6366f1",
-                  borderRadius: 2,
+                  top: 6,
+                  width: 44,
+                  height: 30,
+                  borderRadius: 10,
+                  background: "rgba(99,102,241,0.15)",
+                  border: "1px solid rgba(99,102,241,0.25)",
+                }}
+              />
+            )}
+            <span style={{ position: "relative", zIndex: 1 }}>{item.icon}</span>
+            <span
+              style={{
+                fontSize: 9,
+                fontWeight: active ? 800 : 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                position: "relative",
+                zIndex: 1,
+              }}
+            >
+              {item.label.split(" ")[0]}
+            </span>
+            {/* Active top bar */}
+            {active && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  width: 28,
+                  height: 2.5,
+                  background: "linear-gradient(90deg, #6366f1, #818cf8)",
+                  borderRadius: "0 0 4px 4px",
                 }}
               />
             )}
@@ -751,14 +780,21 @@ export function MainLayout({
         <header
           style={{
             height: headerHeight,
-            background: t.headerBg,
+            background: isMobile
+              ? dark
+                ? "linear-gradient(135deg, #0f0e23 0%, #1e1b4b 100%)"
+                : "linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)"
+              : t.headerBg,
             backdropFilter: "blur(12px)",
-            borderBottom: `1px solid ${t.headerBorder}`,
+            borderBottom: isMobile
+              ? "1px solid rgba(99,102,241,0.2)"
+              : `1px solid ${t.headerBorder}`,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             padding: `0 ${mainPadding}px`,
             zIndex: 30,
+            boxShadow: isMobile ? "0 4px 16px rgba(0,0,0,0.3)" : "none",
           }}
         >
           <div
@@ -773,10 +809,10 @@ export function MainLayout({
               style={{
                 padding: isMobile ? 8 : 10,
                 borderRadius: 12,
-                background: t.toggleBg,
-                border: "none",
+                background: isMobile ? "rgba(255,255,255,0.08)" : t.toggleBg,
+                border: isMobile ? "1px solid rgba(255,255,255,0.1)" : "none",
                 cursor: "pointer",
-                color: t.headerTextSub,
+                color: isMobile ? "rgba(255,255,255,0.85)" : t.headerTextSub,
                 minHeight: 48,
                 minWidth: 48,
                 display: "flex",
@@ -923,12 +959,14 @@ export function MainLayout({
                     width: 40,
                     height: 40,
                     borderRadius: 14,
-                    background: t.avatarBg,
-                    border: `1px solid ${profileOpen ? t.avatarColor : t.avatarBg}`,
+                    background: isMobile ? "rgba(255,255,255,0.1)" : t.avatarBg,
+                    border: isMobile
+                      ? "1px solid rgba(255,255,255,0.15)"
+                      : `1px solid ${profileOpen ? t.avatarColor : t.avatarBg}`,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    color: t.avatarColor,
+                    color: isMobile ? "rgba(255,255,255,0.9)" : t.avatarColor,
                     transition: "border-color 0.2s",
                   }}
                 >

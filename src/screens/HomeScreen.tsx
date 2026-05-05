@@ -429,22 +429,32 @@ function BottomNav({ t }: { t: Theme }) {
         zIndex: 20,
       }}
     >
-      {["Home", "Classes", "Learners", "More"].map((label, i) => (
+      {[
+        { label: "Home", icon: "🏠" },
+        { label: "Classes", icon: "📚" },
+        { label: "Learners", icon: "👨‍🎓" },
+        { label: "More", icon: "☰" },
+      ].map((item, i) => (
         <button
           key={i}
           onClick={() => setActive(i)}
           style={{
             background: "none",
             border: "none",
-            padding: "8px",
+            padding: "6px 4px",
             fontSize: 10,
             fontWeight: active === i ? 700 : 500,
             color: active === i ? t.accent : t.textMuted,
             cursor: "pointer",
             textAlign: "center",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 3,
           }}
         >
-          {label}
+          <span style={{ fontSize: 18 }}>{item.icon}</span>
+          <span>{item.label}</span>
         </button>
       ))}
     </div>
@@ -510,63 +520,62 @@ export default function HomeScreen() {
       {/* Header */}
       <header
         style={{
-          background: t.topbar,
-          borderBottom: `1px solid ${t.border}`,
-          padding: isMobile ? "12px 16px" : "16px 32px",
+          background: isMobile
+            ? dark
+              ? "linear-gradient(135deg, #0F172A 0%, #1E293B 100%)"
+              : "linear-gradient(135deg, #0F766E 0%, #10B981 100%)"
+            : t.topbar,
+          borderBottom: isMobile ? "none" : `1px solid ${t.border}`,
+          padding: isMobile ? "14px 16px" : "16px 32px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           flexShrink: 0,
+          boxShadow: isMobile ? "0 4px 12px rgba(0,0,0,0.15)" : "none",
         }}
       >
-        <div
-          style={{
-            fontSize: isMobile ? 16 : 20,
-            fontWeight: 800,
-            color: t.text,
-          }}
-        >
-          RankIT
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <div
+            style={{
+              fontSize: isMobile ? 18 : 20,
+              fontWeight: 900,
+              color: isMobile ? "#FFFFFF" : t.text,
+              letterSpacing: "-0.5px",
+            }}
+          >
+            RankIT
+          </div>
+          {isMobile && (
+            <div
+              style={{
+                fontSize: 10,
+                color: "rgba(255,255,255,0.7)",
+                fontWeight: 500,
+                marginTop: 1,
+              }}
+            >
+              Eastern Province Edition
+            </div>
+          )}
         </div>
         {!isMobile && (
-          <>
-            <button
-              onClick={() => navigate("/ai-assistant")}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-                border: `1.5px solid ${t.border}`,
-                background: t.accentBg,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                color: t.accent,
-                fontSize: 18,
-              }}
-              title="AI Assistant"
-            >
-              🤖
-            </button>
-            <button
-              onClick={() => navigate("/settings/school")}
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 10,
-                background: "transparent",
-                border: "none",
-                color: t.textMuted,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <div style={{ width: 20, height: 20 }}>☰</div>
-            </button>
-          </>
+          <button
+            onClick={() => navigate("/settings/school")}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              background: "transparent",
+              border: "none",
+              color: t.textMuted,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <div style={{ width: 20, height: 20 }}>☰</div>
+          </button>
         )}
       </header>
 
@@ -584,30 +593,86 @@ export default function HomeScreen() {
         }}
       >
         {/* Welcome Banner */}
-        <div style={{ marginBottom: isMobile ? 20 : 32 }}>
-          <h1
+        {isMobile ? (
+          <div
             style={{
-              fontSize: isMobile ? 20 : 32,
-              fontWeight: 800,
-              color: t.text,
-              margin: "0 0 8px 0",
+              background: dark
+                ? "linear-gradient(135deg, #1E293B 0%, #0F172A 100%)"
+                : "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)",
+              border: `1px solid ${dark ? "#334155" : "#A7F3D0"}`,
+              borderRadius: 16,
+              padding: "16px",
+              marginBottom: 20,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
             }}
           >
-            Welcome back, {username || "Admin"} 👋
-          </h1>
-          <p
-            style={{
-              fontSize: isMobile ? 13 : 15,
-              color: t.textMuted,
-              margin: 0,
-              fontWeight: 500,
-            }}
-          >
-            {isMobile
-              ? "Your school update"
-              : `Here's what's happening at ${schoolName} today.`}
-          </p>
-        </div>
+            <div>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: dark ? "#94A3B8" : "#059669",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  marginBottom: 4,
+                }}
+              >
+                Good{" "}
+                {new Date().getHours() < 12
+                  ? "Morning"
+                  : new Date().getHours() < 17
+                    ? "Afternoon"
+                    : "Evening"}
+              </div>
+              <div
+                style={{
+                  fontSize: 18,
+                  fontWeight: 900,
+                  color: dark ? "#F1F5F9" : "#064E3B",
+                  letterSpacing: "-0.3px",
+                }}
+              >
+                {username || "Admin"} 👋
+              </div>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: dark ? "#64748B" : "#6B7280",
+                  marginTop: 4,
+                  fontWeight: 500,
+                }}
+              >
+                {schoolName}
+              </div>
+            </div>
+            <div style={{ fontSize: 36, opacity: 0.8 }}>🏫</div>
+          </div>
+        ) : (
+          <div style={{ marginBottom: 32 }}>
+            <h1
+              style={{
+                fontSize: 32,
+                fontWeight: 800,
+                color: t.text,
+                margin: "0 0 8px 0",
+              }}
+            >
+              Welcome back, {username || "Admin"} 👋
+            </h1>
+            <p
+              style={{
+                fontSize: 15,
+                color: t.textMuted,
+                margin: 0,
+                fontWeight: 500,
+              }}
+            >
+              {`Here's what's happening at ${schoolName} today.`}
+            </p>
+          </div>
+        )}
 
         {/* Stats Grid (Responsive) */}
         <div
@@ -639,15 +704,117 @@ export default function HomeScreen() {
           {/* Pass Rate and Scores stats removed */}
         </div>
 
-        {/* AI School Summary */}
-        <AISchoolSummaryCard
-          schoolName={schoolName}
-          totalClasses={classes.length}
-          totalLearners={learners.length}
-          tableRows={tableRows}
-          t={t}
-          isMobile={isMobile}
-        />
+        {/* AI Section — Mobile: Entry Card | Desktop: Summary Card */}
+        {isMobile ? (
+          <div
+            style={{
+              background: dark
+                ? "linear-gradient(135deg, #1e1b4b 0%, #0f0e23 100%)"
+                : "linear-gradient(135deg, #6366f1 0%, #818cf8 100%)",
+              borderRadius: 16,
+              padding: "16px",
+              marginBottom: 20,
+              boxShadow: "0 4px 20px rgba(99,102,241,0.3)",
+              cursor: "pointer",
+            }}
+            onClick={() => navigate("/ai-assistant")}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 12,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    background: "rgba(255,255,255,0.15)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 18,
+                  }}
+                >
+                  ✨
+                </div>
+                <div>
+                  <div
+                    style={{ fontSize: 14, fontWeight: 800, color: "#ffffff" }}
+                  >
+                    AI Assistant
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: "rgba(255,255,255,0.65)",
+                      marginTop: 1,
+                    }}
+                  >
+                    Powered by RankItZM
+                  </div>
+                </div>
+              </div>
+              <div
+                style={{
+                  background: "rgba(255,255,255,0.15)",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  borderRadius: 8,
+                  padding: "6px 12px",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "#ffffff",
+                }}
+              >
+                Open →
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {[
+                "Summarise school",
+                "Top performing class",
+                "Generate lesson plan",
+                "Write scheme of work",
+              ].map((chip, i) => (
+                <button
+                  key={i}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(
+                      `/ai-assistant?prompt=${encodeURIComponent(chip)}`,
+                    );
+                  }}
+                  style={{
+                    background: "rgba(255,255,255,0.12)",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    borderRadius: 20,
+                    padding: "5px 12px",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: "#ffffff",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <AISchoolSummaryCard
+            schoolName={schoolName}
+            totalClasses={classes.length}
+            totalLearners={learners.length}
+            tableRows={tableRows}
+            t={t}
+            isMobile={isMobile}
+          />
+        )}
 
         {/* Classes Section (Mobile: Stacked Cards | Desktop: Table) */}
         <div style={{ marginBottom: isMobile ? 20 : 32 }}>
@@ -835,65 +1002,194 @@ export default function HomeScreen() {
           >
             Quick Actions
           </h2>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: isMobile
-                ? "1fr"
-                : "repeat(auto-fit, minmax(260px, 1fr))",
-              gap: isMobile ? 12 : 20,
-            }}
-          >
-            <QuickActionBtn
-              icon={Icons.classes}
-              color={t.accent}
-              label="Add Class"
-              subtitle="Create new class"
-              onClick={() => navigate("/classes/add")}
-              t={t}
-            />
-            <QuickActionBtn
-              icon={Icons.students}
-              color="#3B82F6"
-              label="Enroll Student"
-              subtitle="Register learner"
-              onClick={() => navigate("/learners/add")}
-              t={t}
-            />
-            {!isMobile && (
-              <>
-                <QuickActionBtn
-                  icon={Icons.scores}
-                  color={t.orange}
-                  label="Test Scores"
-                  subtitle="Enter marks"
-                  onClick={() => navigate("/tests")}
-                  t={t}
-                />
-                <QuickActionBtn
-                  icon={Icons.reports}
-                  color="#8B5CF6"
-                  label="Reports"
-                  subtitle="View analytics"
-                  onClick={() => navigate("/reports")}
-                  t={t}
-                />
-                <QuickActionBtn
-                  icon="🤖"
-                  color={t.accent}
-                  label="AI Assistant"
-                  subtitle="Chat with AI"
-                  onClick={() => navigate("/ai-assistant")}
-                  t={t}
-                />
-              </>
-            )}
-          </div>
+          {isMobile ? (
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                overflowX: "auto",
+                paddingBottom: 8,
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+              }}
+            >
+              {[
+                {
+                  color: t.accent,
+                  label: "Add Class",
+                  sub: "New class",
+                  path: "/classes/add",
+                  emoji: "📚",
+                },
+                {
+                  color: "#3B82F6",
+                  label: "Enroll",
+                  sub: "Add learner",
+                  path: "/learners/add",
+                  emoji: "👨‍🎓",
+                },
+                {
+                  color: t.orange,
+                  label: "Scores",
+                  sub: "Enter marks",
+                  path: "/tests",
+                  emoji: "📝",
+                },
+                {
+                  color: "#8B5CF6",
+                  label: "Reports",
+                  sub: "Analytics",
+                  path: "/reports",
+                  emoji: "📊",
+                },
+                {
+                  color: "#6366f1",
+                  label: "AI Chat",
+                  sub: "Assistant",
+                  path: "/ai-assistant",
+                  emoji: "✨",
+                },
+              ].map((action, i) => (
+                <button
+                  key={i}
+                  onClick={() => navigate(action.path)}
+                  style={{
+                    background: dark
+                      ? "linear-gradient(135deg, #1E293B 0%, #0F172A 100%)"
+                      : "#FFFFFF",
+                    border: `1.5px solid ${action.color}30`,
+                    borderRadius: 14,
+                    padding: "14px 12px",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 8,
+                    cursor: "pointer",
+                    boxShadow: dark
+                      ? "0 2px 8px rgba(0,0,0,0.3)"
+                      : "0 2px 8px rgba(0,0,0,0.06)",
+                    minWidth: 80,
+                    flexShrink: 0,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 12,
+                      background: action.color + "15",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 20,
+                    }}
+                  >
+                    {action.emoji}
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 800,
+                        color: dark ? "#F1F5F9" : "#111827",
+                      }}
+                    >
+                      {action.label}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        color: dark ? "#64748B" : "#9CA3AF",
+                        marginTop: 1,
+                        fontWeight: 500,
+                      }}
+                    >
+                      {action.sub}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                gap: 20,
+              }}
+            >
+              <QuickActionBtn
+                icon={Icons.classes}
+                color={t.accent}
+                label="Add Class"
+                subtitle="Create new class"
+                onClick={() => navigate("/classes/add")}
+                t={t}
+              />
+              <QuickActionBtn
+                icon={Icons.students}
+                color="#3B82F6"
+                label="Enroll Student"
+                subtitle="Register learner"
+                onClick={() => navigate("/learners/add")}
+                t={t}
+              />
+              <QuickActionBtn
+                icon={Icons.scores}
+                color={t.orange}
+                label="Test Scores"
+                subtitle="Enter marks"
+                onClick={() => navigate("/tests")}
+                t={t}
+              />
+              <QuickActionBtn
+                icon={Icons.reports}
+                color="#8B5CF6"
+                label="Reports"
+                subtitle="View analytics"
+                onClick={() => navigate("/reports")}
+                t={t}
+              />
+              <QuickActionBtn
+                icon="🤖"
+                color={t.accent}
+                label="AI Assistant"
+                subtitle="Chat with AI"
+                onClick={() => navigate("/ai-assistant")}
+                t={t}
+              />
+            </div>
+          )}
         </div>
       </main>
 
-      {/* Bottom Navigation (Mobile) */}
-      <BottomNav t={t} />
+      {/* Bottom Navigation handled by MainLayout */}
+
+      {/* FLOATING AI ASSISTANT BUTTON — mobile home only */}
+      {isMobile && (
+        <button
+          onClick={() => navigate("/ai-assistant")}
+          style={{
+            position: "fixed",
+            bottom: 84,
+            right: 16,
+            width: 52,
+            height: 52,
+            borderRadius: 16,
+            background: "linear-gradient(135deg, #6366f1 0%, #818cf8 100%)",
+            border: "none",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 4px 20px rgba(99,102,241,0.5)",
+            zIndex: 59,
+            animation: "aiFabPulse 2.5s ease-in-out infinite",
+          }}
+        >
+          <span style={{ fontSize: 22 }}>✨</span>
+        </button>
+      )}
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -903,9 +1199,14 @@ export default function HomeScreen() {
         button { min-height: 44px; }
         
         /* Smooth scroll on mobile */
-        @media (max-width: 640px) {
+@media (max-width: 640px) {
           body { -webkit-user-select: none; }
           main { scroll-behavior: smooth; }
+        }
+       div::-webkit-scrollbar { display: none; }
+        @keyframes aiFabPulse {
+          0%, 100% { box-shadow: 0 4px 20px rgba(99,102,241,0.5), 0 0 0 0 rgba(99,102,241,0.4); }
+          50% { box-shadow: 0 4px 20px rgba(99,102,241,0.6), 0 0 0 8px rgba(99,102,241,0); }
         }
       `}</style>
     </div>

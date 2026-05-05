@@ -30,6 +30,9 @@ const LearnerListScreen = lazy(() => import("./screens/LearnerListScreen"));
 const AddLearnerScreen = lazy(() => import("./screens/AddLearnerScreen"));
 const EditLearnerScreen = lazy(() => import("./screens/EditLearnerScreen"));
 const LearnerScoresScreen = lazy(() => import("./screens/LearnerScoresScreen"));
+const StudentInsightsScreen = lazy(
+  () => import("./screens/StudentInsightsScreen"),
+);
 
 // Subject management
 const AddSubjectScreen = lazy(() => import("./screens/AddSubjectScreen"));
@@ -367,6 +370,15 @@ function AppRouterContent() {
             element={
               <ProtectedRoute>
                 <ProgressReportScreen />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/reports/student-insights"
+            element={
+              <ProtectedRoute>
+                <StudentInsightsScreen />
               </ProtectedRoute>
             }
           />

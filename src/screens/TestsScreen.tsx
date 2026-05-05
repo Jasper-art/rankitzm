@@ -272,8 +272,16 @@ export default function TestsScreen() {
       {/* Professional Header Area */}
       <header
         style={{
-          background: t.surface,
-          borderBottom: `1px solid ${t.border}`,
+          background:
+            typeof window !== "undefined" && window.innerWidth < 640
+              ? dark
+                ? "linear-gradient(135deg, #0F172A 0%, #1E293B 100%)"
+                : "linear-gradient(135deg, #0F766E 0%, #10B981 100%)"
+              : t.surface,
+          borderBottom:
+            typeof window !== "undefined" && window.innerWidth < 640
+              ? "1px solid rgba(255,255,255,0.1)"
+              : `1px solid ${t.border}`,
           padding: "16px 24px",
           display: "flex",
           alignItems: "center",
@@ -282,6 +290,10 @@ export default function TestsScreen() {
           top: 0,
           zIndex: 20,
           flexShrink: 0,
+          boxShadow:
+            typeof window !== "undefined" && window.innerWidth < 640
+              ? "0 4px 12px rgba(0,0,0,0.15)"
+              : "none",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -318,7 +330,10 @@ export default function TestsScreen() {
               style={{
                 fontSize: 20,
                 fontWeight: 700,
-                color: t.text,
+                color:
+                  typeof window !== "undefined" && window.innerWidth < 640
+                    ? "#FFFFFF"
+                    : t.text,
                 letterSpacing: "-0.5px",
               }}
             >
@@ -327,7 +342,10 @@ export default function TestsScreen() {
             <div
               style={{
                 fontSize: 13,
-                color: t.textMuted,
+                color:
+                  typeof window !== "undefined" && window.innerWidth < 640
+                    ? "rgba(255,255,255,0.65)"
+                    : t.textMuted,
                 marginTop: 2,
                 fontWeight: 400,
               }}
@@ -375,10 +393,10 @@ export default function TestsScreen() {
             <h2
               style={{
                 fontSize: 11,
-                fontWeight: 700,
-                color: t.textMuted,
+                fontWeight: 800,
+                color: t.accent,
                 textTransform: "uppercase",
-                letterSpacing: "1px",
+                letterSpacing: "1.5px",
                 marginBottom: 12,
               }}
             >
@@ -421,7 +439,9 @@ export default function TestsScreen() {
                   style={{
                     display: "grid",
                     gridTemplateColumns:
-                      "repeat(auto-fill, minmax(200px, 1fr))",
+                      typeof window !== "undefined" && window.innerWidth < 640
+                        ? "1fr 1fr"
+                        : "repeat(auto-fill, minmax(200px, 1fr))",
                     gap: 12,
                   }}
                 >
@@ -449,10 +469,10 @@ export default function TestsScreen() {
                 <h2
                   style={{
                     fontSize: 11,
-                    fontWeight: 700,
-                    color: t.textMuted,
+                    fontWeight: 800,
+                    color: t.accent,
                     textTransform: "uppercase",
-                    letterSpacing: "1px",
+                    letterSpacing: "1.5px",
                     marginBottom: 12,
                   }}
                 >
@@ -461,7 +481,10 @@ export default function TestsScreen() {
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+                    gridTemplateColumns:
+                      typeof window !== "undefined" && window.innerWidth < 640
+                        ? "1fr"
+                        : "repeat(auto-fit, minmax(250px, 1fr))",
                     gap: 12,
                   }}
                 >
@@ -482,10 +505,10 @@ export default function TestsScreen() {
                 <h2
                   style={{
                     fontSize: 11,
-                    fontWeight: 700,
-                    color: t.textMuted,
+                    fontWeight: 800,
+                    color: t.accent,
                     textTransform: "uppercase",
-                    letterSpacing: "1px",
+                    letterSpacing: "1.5px",
                     marginBottom: 12,
                   }}
                 >
@@ -639,7 +662,10 @@ export default function TestsScreen() {
             <div
               style={{
                 textAlign: "center",
-                padding: "60px 20px",
+                padding:
+                  typeof window !== "undefined" && window.innerWidth < 640
+                    ? "32px 16px"
+                    : "60px 20px",
                 color: t.textMuted,
               }}
             >

@@ -1281,6 +1281,26 @@ export default function BaseReportScreen() {
           >
             PDF
           </button>
+          <button
+            onClick={() =>
+              navigate(
+                `/ai-reports/${classId}/${routeTestType}/${routeTerm}/${routeYear}`,
+              )
+            }
+            style={{
+              flex: 2,
+              padding: "8px 0",
+              borderRadius: 8,
+              border: `1.5px solid ${t.accent}`,
+              background: t.accentBg,
+              color: t.accent,
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            🤖 AI Reports
+          </button>
         </div>
       )}
       {/* Main Content */}

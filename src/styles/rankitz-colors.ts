@@ -1,30 +1,21 @@
-// RankIT ZM - Color Theme System
-// Light and Dark theme colors for the school management system
+// RankIT ZM - Premium Executive Color Theme System
 
 export interface Theme {
-  // Background colors
   bg: string;
   surface: string;
   surfaceAlt: string;
   topbar: string;
-
-  // Border colors
   border: string;
   borderSub: string;
-
-  // Text colors
   text: string;
   textSub: string;
   textMuted: string;
-
-  // Accent colors (Primary Green)
   accent: string;
   accentBg: string;
   accentText: string;
-  accentLighter: string;   // Light accent background for premium screens
-  accentDark: string;      // Dark accent for hover/active states
-
-  // Status colors
+  accentLighter: string;
+  accentDark: string;
+  accentLight: string;
   red: string;
   redBg: string;
   redText: string;
@@ -34,118 +25,112 @@ export interface Theme {
   green: string;
   greenBg: string;
   greenText: string;
-
-  // Secondary Navy Blue
   navy: string;
   navyBg: string;
   navyText: string;
-
-  // Shadow
   shadow: string;
-  shadowMd: string;        // Medium shadow for premium screens
-  shadowLg: string;        // Large shadow for premium screens
-
-  // Table colors
+  shadowMd: string;
+  shadowLg: string;
   tableHead: string;
 }
 
-// Light Theme
+// ─── LIGHT THEME ──────────────────────────────────────────────────
 export const LIGHT: Theme = {
-  // Background
-  bg: '#F2F5F2',
-  surface: '#FFFFFF',
-  surfaceAlt: '#EFF4EF',
-  topbar: '#FFFFFF',
+  // Backgrounds — clean neutral, not green-tinted
+  bg:         '#F8FAFC',
+  surface:    '#FFFFFF',
+  surfaceAlt: '#F1F5F9',
+  topbar:     '#FFFFFF',
 
-  // Border
-  border: '#DDE8DD',
-  borderSub: '#EEF4EE',
+  // Borders — slate, not green
+  border:    '#E2E8F0',
+  borderSub: '#F1F5F9',
 
-  // Text
-  text: '#0D1A0D',
-  textSub: '#3A5A3A',
-  textMuted: '#7A9A7A',
+  // Text — deep slate for executive readability
+  text:      '#0F172A',
+  textSub:   '#334155',
+  textMuted: '#64748B',
 
-  // Accent (Primary Green)
-  accent: '#198A00',
-  accentBg: '#E4F5E0',
-  accentText: '#0A5000',
-  accentLighter: '#D4EFF5',    // Light cyan/blue for premium screens
-  accentDark: '#126B00',       // Dark green for hover/active
+  // Accent — vivid Zambian green, readable on white
+  accent:       '#16A34A',
+  accentBg:     '#F0FDF4',
+  accentText:   '#15803D',
+  accentLighter:'#DCFCE7',
+  accentDark:   '#15803D',
+  accentLight:  '#BBF7D0',
 
-  // Status colors
-  red: '#EF3340',
-  redBg: '#FDECEE',
-  redText: '#8A0010',
-  orange: '#E07200',
-  orangeBg: '#FFF0E0',
-  orangeText: '#7A3A00',
-  green: '#198A00',
-  greenBg: '#E4F5E0',
-  greenText: '#0A5000',
+  // Status
+  red:       '#DC2626',
+  redBg:     '#FEF2F2',
+  redText:   '#991B1B',
+  orange:    '#D97706',
+  orangeBg:  '#FFFBEB',
+  orangeText:'#92400E',
+  green:     '#16A34A',
+  greenBg:   '#F0FDF4',
+  greenText: '#15803D',
 
-  // Secondary Navy Blue
-  navy: '#1A3A52',
-  navyBg: 'rgba(26, 58, 82, 0.1)',
-  navyText: '#1A3A52',
+  // Executive Navy — strong secondary
+  navy:    '#1E3A5F',
+  navyBg:  'rgba(30, 58, 95, 0.08)',
+  navyText:'#1E3A5F',
 
-  // Shadow
-  shadow: 'rgba(25, 138, 0, 0.10)',
-  shadowMd: 'rgba(13, 27, 42, 0.12)',    // Medium shadow
-  shadowLg: 'rgba(13, 27, 42, 0.16)',    // Large shadow
+  // Shadows — neutral, not tinted
+  shadow:   'rgba(15, 23, 42, 0.04)',
+  shadowMd: 'rgba(15, 23, 42, 0.10)',
+  shadowLg: 'rgba(15, 23, 42, 0.16)',
 
-  // Table colors
-  tableHead: '#F5FAF5',
+  tableHead: '#F8FAFC',
 };
 
-// Dark Theme
+// ─── DARK THEME ───────────────────────────────────────────────────
 export const DARK: Theme = {
-  // Background
-  bg: '#0A140A',
-  surface: '#121E12',
-  surfaceAlt: '#182418',
-  topbar: '#121E12',
+  // Backgrounds — deep slate, premium not murky
+  bg:         '#0F172A',
+  surface:    '#1E293B',
+  surfaceAlt: '#334155',
+  topbar:     '#1E293B',
 
-  // Border
-  border: '#243024',
-  borderSub: '#1A241A',
+  // Borders — visible but subtle
+  border:    '#334155',
+  borderSub: '#1E293B',
 
-  // Text
-  text: '#E0EEE0',
-  textSub: '#80A880',
-  textMuted: '#4A6A4A',
+  // Text — high contrast slate
+  text:      '#F1F5F9',
+  textSub:   '#CBD5E1',
+  textMuted: '#64748B',
 
-  // Accent (Primary Green - Brighter for dark)
-  accent: '#34C000',
-  accentBg: '#0A2008',
-  accentText: '#80E060',
-  accentLighter: '#1A4D5C',    // Dark cyan background for premium screens
-  accentDark: '#2BA5B5',       // Light cyan for hover/active
+  // Accent — brighter green for dark backgrounds
+  accent:       '#22C55E',
+  accentBg:     '#052E16',
+  accentText:   '#86EFAC',
+  accentLighter:'#14532D',
+  accentDark:   '#4ADE80',
+  accentLight:  '#166534',
 
-  // Status colors
-  red: '#FF5060',
-  redBg: '#280A0E',
-  redText: '#FF9098',
-  orange: '#FF9030',
-  orangeBg: '#281600',
-  orangeText: '#FFB870',
-  green: '#34C000',
-  greenBg: '#0A2008',
-  greenText: '#80E060',
+  // Status
+  red:       '#F87171',
+  redBg:     '#450A0A',
+  redText:   '#FCA5A5',
+  orange:    '#FB923C',
+  orangeBg:  '#431407',
+  orangeText:'#FDBA74',
+  green:     '#22C55E',
+  greenBg:   '#052E16',
+  greenText: '#86EFAC',
 
-  // Secondary Navy Blue
-  navy: '#2D5A7B',
-  navyBg: 'rgba(45, 90, 123, 0.15)',
-  navyText: '#2D5A7B',
+  // Executive Navy
+  navy:    '#3B82F6',
+  navyBg:  'rgba(59, 130, 246, 0.12)',
+  navyText:'#93C5FD',
 
-  // Shadow
-  shadow: 'rgba(52, 192, 0, 0.14)',
-  shadowMd: 'rgba(0, 0, 0, 0.4)',        // Medium shadow
-  shadowLg: 'rgba(0, 0, 0, 0.5)',        // Large shadow
+  // Shadows — deep, premium
+  shadow:   'rgba(0, 0, 0, 0.20)',
+  shadowMd: 'rgba(0, 0, 0, 0.35)',
+  shadowLg: 'rgba(0, 0, 0, 0.50)',
 
-  // Table colors
-  tableHead: '#182418',
+  tableHead: '#0F172A',
 };
 
-// Zambia Flag Colors (Green, Black, Red, Orange)
+// Zambia Flag Colors
 export const ZAMBIA_FLAG: string[] = ['#198A00', '#1A1A1A', '#EF3340', '#FF8200'];

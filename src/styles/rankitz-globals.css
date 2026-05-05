@@ -1,43 +1,33 @@
-@import "tailwindcss"; /* replaces @tailwind base, components, utilities */
+@import "tailwindcss";
 @import "tw-animate-css";
 @import "@fontsource-variable/geist";
 
 /* STEP 1: THEME MAPPING */
 @theme {
-  /* RankIT ZM Branding */
   --color-primary: var(--accent);
   --color-primary-foreground: var(--accent-foreground);
-
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent-bg: var(--accent-bg);
   --color-accent-border: var(--accent-border);
-
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary-bg: var(--secondary-bg);
-
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-success-bg: var(--success-bg);
-
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
   --color-warning-bg: var(--warning-bg);
-
   --color-danger: var(--danger);
   --color-danger-foreground: var(--danger-foreground);
   --color-danger-bg: var(--danger-bg);
-
-  /* shadcn/ui variables */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-border: var(--border);
   --color-ring: var(--ring);
-
-  /* Typography */
   --font-sans: var(--sans);
   --font-mono: var(--mono);
 }
@@ -46,49 +36,52 @@
 @layer base {
   :root {
     /* RankIT ZM - Light Theme */
-    --accent: #2D7D4D;
-    --accent-bg: rgba(45, 125, 77, 0.1);
-    --accent-border: rgba(45, 125, 77, 0.5);
+    --accent: #16A34A;
+    --accent-bg: rgba(22, 163, 74, 0.08);
+    --accent-border: rgba(22, 163, 74, 0.4);
     --accent-foreground: #ffffff;
 
-    --secondary: #1A3A52;
-    --secondary-bg: rgba(26, 58, 82, 0.1);
+    --secondary: #1E3A5F;
+    --secondary-bg: rgba(30, 58, 95, 0.08);
     --secondary-foreground: #ffffff;
 
-    --danger: #D32F2F;
-    --danger-bg: rgba(211, 47, 47, 0.1);
+    --danger: #DC2626;
+    --danger-bg: rgba(220, 38, 38, 0.08);
     --danger-foreground: #ffffff;
 
-    --warning: #F57C00;
-    --warning-bg: rgba(245, 124, 0, 0.1);
+    --warning: #D97706;
+    --warning-bg: rgba(217, 119, 6, 0.08);
     --warning-foreground: #ffffff;
 
-    --success: #2D7D4D;
-    --success-bg: rgba(45, 125, 77, 0.1);
+    --success: #16A34A;
+    --success-bg: rgba(22, 163, 74, 0.08);
     --success-foreground: #ffffff;
 
-    /* shadcn/ui defaults */
+    /* shadcn/ui */
     --background: oklch(0.98 0 0);
-    --foreground: oklch(0.08 0 0);
+    --foreground: oklch(0.09 0 0);
     --card: oklch(1 0 0);
-    --card-foreground: oklch(0.08 0 0);
-    --border: oklch(0.88 0 0);
-    --ring: oklch(0.35 0.12 142);
+    --card-foreground: oklch(0.09 0 0);
+    --border: oklch(0.90 0 0);
+    --ring: oklch(0.45 0.15 142);
 
     --sans: 'Geist Variable', system-ui, sans-serif;
     --mono: ui-monospace, Consolas, monospace;
 
-    font: 18px/145% var(--sans);
+    font: 14px/150% var(--sans);
   }
 
-  /* Dark Mode Overrides */
   .dark {
-    --accent: #4CAF50;
-    --accent-bg: rgba(76, 175, 80, 0.15);
+    --accent: #22C55E;
+    --accent-bg: rgba(34, 197, 94, 0.12);
+    --accent-border: rgba(34, 197, 94, 0.35);
     --accent-foreground: #ffffff;
 
-    --background: oklch(0.08 0 0);
-    --foreground: oklch(0.92 0 0);
+    --background: oklch(0.09 0 0);
+    --foreground: oklch(0.93 0 0);
+    --card: oklch(0.13 0 0);
+    --card-foreground: oklch(0.93 0 0);
+    --border: oklch(0.22 0 0);
   }
 
   body {
@@ -96,6 +89,8 @@
     font-family: var(--sans);
     background-color: var(--background);
     color: var(--foreground);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
@@ -106,15 +101,28 @@
   }
 
   .btn-primary {
-    @apply bg-accent text-white hover:bg-accent-bg transition-colors px-4 py-2 rounded-lg;
+    @apply bg-accent text-white transition-all px-4 py-2 rounded-lg font-semibold;
+    box-shadow: 0 1px 3px rgba(22, 163, 74, 0.25);
+  }
+
+  .btn-primary:hover {
+    filter: brightness(1.08);
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+    transform: translateY(-1px);
   }
 
   .alert-success {
-    @apply bg-success-bg border-l-4 border-success text-success p-4;
+    @apply bg-success-bg border-l-4 border-success text-success p-4 rounded-r-lg;
   }
 
-  .card-srcs {
-    @apply bg-card border border-border rounded-lg shadow-sm p-6;
+  .card-rankitz {
+    @apply bg-card border border-border rounded-xl shadow-sm p-6;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  .card-rankitz:hover {
+    box-shadow: 0 8px 24px rgba(13, 27, 42, 0.10);
+    transform: translateY(-2px);
   }
 
   .counter {
@@ -122,16 +130,22 @@
     font-family: var(--mono);
     color: var(--accent);
     background: var(--accent-bg);
-    border: 2px solid transparent;
+    border: 1.5px solid transparent;
   }
 
   .counter:hover {
-    @apply shadow-md;
     border-color: var(--accent-border);
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.15);
   }
+
+  /* Premium scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: oklch(0.82 0 0); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: oklch(0.70 0 0); }
 }
 
-/* STEP 4: LAYOUT & GLOBAL OVERRIDES */
+/* STEP 4: LAYOUT */
 html, body, #root {
   margin: 0;
   padding: 0;
@@ -139,14 +153,6 @@ html, body, #root {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-}
-
-h1 {
-  @apply text-4xl lg:text-6xl font-medium text-foreground my-8 tracking-tight;
-}
-
-h2 {
-  @apply text-xl lg:text-2xl font-medium text-foreground mb-2;
 }
 
 #next-steps {

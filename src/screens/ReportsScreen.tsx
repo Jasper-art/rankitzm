@@ -135,7 +135,7 @@ export default function ReportsScreen() {
     return window.matchMedia("(prefers-color-scheme: dark)").matches;
   });
 
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
   const [selectedClass, setSelectedClass] = useState<number | null>(null);
   const [hoveredReport, setHoveredReport] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -143,7 +143,7 @@ export default function ReportsScreen() {
   const t = dark ? DARK : LIGHT;
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    const handleResize = () => setIsMobile(window.innerWidth < 640);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -278,14 +278,21 @@ export default function ReportsScreen() {
       {/* Premium Topbar */}
       <header
         style={{
-          background: t.topbar,
-          borderBottom: `1px solid ${t.border}`,
-          padding: isMobile ? "12px 16px" : "16px 24px",
+          background: isMobile
+            ? dark
+              ? "linear-gradient(135deg, #0F172A 0%, #1E293B 100%)"
+              : "linear-gradient(135deg, #0F766E 0%, #10B981 100%)"
+            : t.topbar,
+          borderBottom: isMobile
+            ? "1px solid rgba(255,255,255,0.1)"
+            : `1px solid ${t.border}`,
+          padding: isMobile ? "14px 16px" : "16px 24px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           zIndex: 30,
           flexShrink: 0,
+          boxShadow: isMobile ? "0 4px 12px rgba(0,0,0,0.15)" : "none",
         }}
       >
         <div
@@ -298,9 +305,11 @@ export default function ReportsScreen() {
           <button
             onClick={() => navigate("/home")}
             style={{
-              background: "transparent",
-              border: `1px solid ${t.border}`,
-              color: t.textMuted,
+              background: isMobile ? "rgba(255,255,255,0.1)" : "transparent",
+              border: isMobile
+                ? "1px solid rgba(255,255,255,0.15)"
+                : `1px solid ${t.border}`,
+              color: isMobile ? "rgba(255,255,255,0.85)" : t.textMuted,
               cursor: "pointer",
               padding: "6px",
               display: "flex",
@@ -308,14 +317,6 @@ export default function ReportsScreen() {
               justifyContent: "center",
               borderRadius: 6,
               transition: "all 0.2s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = t.surfaceAlt;
-              e.currentTarget.style.color = t.text;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = t.textMuted;
             }}
             title="Back to Home"
           >
@@ -326,7 +327,7 @@ export default function ReportsScreen() {
               style={{
                 fontSize: isMobile ? 18 : 20,
                 fontWeight: 700,
-                color: t.text,
+                color: isMobile ? "#FFFFFF" : t.text,
                 letterSpacing: "-0.5px",
               }}
             >
@@ -335,7 +336,7 @@ export default function ReportsScreen() {
             <div
               style={{
                 fontSize: 12,
-                color: t.textMuted,
+                color: isMobile ? "rgba(255,255,255,0.65)" : t.textMuted,
                 marginTop: 2,
                 fontWeight: 400,
               }}
@@ -615,6 +616,27 @@ export default function ReportsScreen() {
               >
                 <span>📉</span> Global Progress Analytics
               </button>
+              <button
+                onClick={() => navigate("/reports/student-insights")}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  background: t.surfaceAlt,
+                  color: t.text,
+                  border: `1px solid ${t.border}`,
+                  borderRadius: 8,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  marginTop: 8,
+                  fontSize: 14,
+                }}
+              >
+                <span>🎯</span> Student Insights
+              </button>
             </div>
           </aside>
         )}
@@ -810,151 +832,7 @@ export default function ReportsScreen() {
                   </div>
                 </div>
 
-                {/* AI Reports Button */}
-                <div className="ai-report-button" style={{ marginBottom: 24 }}>
-                  <button
-                    onClick={() =>
-                      navigate(
-                        `/ai-reports/${selectedClass}/endofterm/${currentTerm}/${currentYear}`,
-                      )
-                    }
-                    style={{
-                      width: "100%",
-                      padding: "16px 20px",
-                      borderRadius: 12,
-                      border: `2px solid ${t.accent}`,
-                      background: t.accentLighter,
-                      color: t.accentDark,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 16,
-                      textAlign: "left",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 10,
-                        background: t.accent,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 22,
-                        flexShrink: 0,
-                      }}
-                    >
-                      🤖
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div
-                        style={{
-                          fontSize: 15,
-                          fontWeight: 800,
-                          color: t.accentDark,
-                        }}
-                      >
-                        AI Report Generator
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          color: t.accentText,
-                          marginTop: 2,
-                          fontWeight: 500,
-                        }}
-                      >
-                        Generate comments for all learners instantly
-                      </div>
-                    </div>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 800,
-                        background: t.accent,
-                        color: "#fff",
-                        padding: "3px 8px",
-                        borderRadius: 6,
-                      }}
-                    >
-                      NEW
-                    </span>
-                  </button>
-                </div>
-
-                {/* AI Reports Button */}
-                <div style={{ marginBottom: 24 }}>
-                  <button
-                    onClick={() =>
-                      navigate(
-                        `/ai-reports/${selectedClass}/endofterm/${currentTerm}/${currentYear}`,
-                      )
-                    }
-                    style={{
-                      width: "100%",
-                      padding: "16px 20px",
-                      borderRadius: 12,
-                      border: `2px solid ${t.accent}`,
-                      background: t.accentLighter,
-                      color: t.accentDark,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 16,
-                      textAlign: "left",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 10,
-                        background: t.accent,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 22,
-                        flexShrink: 0,
-                      }}
-                    >
-                      🤖
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div
-                        style={{
-                          fontSize: 15,
-                          fontWeight: 800,
-                          color: t.accentDark,
-                        }}
-                      >
-                        AI Report Generator
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          color: t.accentText,
-                          marginTop: 2,
-                          fontWeight: 500,
-                        }}
-                      >
-                        Generate comments for all learners instantly
-                      </div>
-                    </div>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 800,
-                        background: t.accent,
-                        color: "#fff",
-                        padding: "3px 8px",
-                        borderRadius: 6,
-                      }}
-                    >
-                      NEW
-                    </span>
-                  </button>
-                </div>
+                {/* AI Report card above handles this — no duplicate needed */}
 
                 {/* Quick Actions List */}
                 <div style={{ marginBottom: 32 }}>

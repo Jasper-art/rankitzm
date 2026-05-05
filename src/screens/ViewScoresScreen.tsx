@@ -180,8 +180,6 @@ const SUBJECT_COLORS: Record<string, { primary: string; dark: string }> = {
   "Art & Design": { primary: "#FF006E", dark: "#C2185B" },
 };
 
-// removed - using imported grading utils
-
 export default function ViewScoresScreen() {
   const navigate = useNavigate();
   const { testType, classId } = useParams();
@@ -207,6 +205,18 @@ export default function ViewScoresScreen() {
   const [generatingPDF, setGeneratingPDF] = useState(false);
   const [searchLearnerQuery, setSearchLearnerQuery] = useState("");
   const [searchSubjectQuery, setSearchSubjectQuery] = useState("");
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+  const [showAIModal, setShowAIModal] = useState(false);
+
+  React.useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+  const [aiLearner, setAiLearner] = useState<number | null>(null);
+  const [aiMessage, setAiMessage] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiGeneratedMessage, setAiGeneratedMessage] = useState("");
   const [dark] = useState(() => {
     const saved = localStorage.getItem("rankitz-theme");
     if (saved) return saved === "dark";
@@ -347,6 +357,62 @@ export default function ViewScoresScreen() {
     if (learnerScores.length === 0) return 0;
     const total = learnerScores.reduce((sum, s) => sum + (s.score || 0), 0);
     return Math.round(total / learnerScores.length);
+  };
+
+  const generateAIMessage = async () => {
+    if (!aiLearner || !aiMessage) return;
+
+    const learner = classLearners.find((l) => l.id === aiLearner);
+    if (!learner) return;
+
+    const scores = classSubjects.map((s) => ({
+      subject: s.subjectName,
+      score: getScore(aiLearner, s.id!) || 0,
+      maxMark: s.maxMark || 100,
+    }));
+
+    const avg = calculateLearnerAverage(aiLearner);
+    const topSubject = scores.sort((a, b) => b.score - a.score)[0];
+    const weakSubject = scores.sort((a, b) => a.score - b.score)[0];
+
+    const prompt = `Generate a professional parent message about ${learner.name}'s academic performance.
+${aiMessage === "positive" ? "Tone: Encouraging and positive, celebrating strengths." : "Tone: Urgent, action-required, addressing concerns."}
+
+SCORES:
+${scores.map((s) => `${s.subject}: ${s.score}/${s.maxMark}`).join("\n")}
+Overall Average: ${avg}%
+Strongest: ${topSubject.subject}
+Needs Help: ${weakSubject.subject}
+
+Write 2-3 sentences suitable for SMS or email. Include specific scores.`;
+
+    setAiLoading(true);
+    try {
+      const response = await fetch(
+        "https://api.groq.com/openai/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: "llama-3.3-70b-versatile",
+            messages: [{ role: "user", content: prompt }],
+            max_tokens: 200,
+            temperature: 0.7,
+          }),
+        },
+      );
+
+      if (!response.ok) throw new Error("API error");
+      const data = await response.json();
+      setAiGeneratedMessage(data.choices?.[0]?.message?.content || "");
+    } catch (err) {
+      alert("Error generating message. Try again.");
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   // Generate PDF Logic
@@ -759,9 +825,15 @@ export default function ViewScoresScreen() {
         {/* Professional Topbar */}
         <header
           style={{
-            background: t.topbar,
-            borderBottom: `1px solid ${t.border}`,
-            padding: "16px 24px",
+            background: isMobile
+              ? dark
+                ? "linear-gradient(135deg, #0F172A 0%, #1E293B 100%)"
+                : "linear-gradient(135deg, #0F766E 0%, #10B981 100%)"
+              : t.topbar,
+            borderBottom: isMobile
+              ? "1px solid rgba(255,255,255,0.1)"
+              : `1px solid ${t.border}`,
+            padding: isMobile ? "14px 16px" : "16px 24px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -769,15 +841,18 @@ export default function ViewScoresScreen() {
             top: 0,
             zIndex: 20,
             flexShrink: 0,
+            boxShadow: isMobile ? "0 4px 12px rgba(0,0,0,0.15)" : "none",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <button
               onClick={() => navigate("/tests")}
               style={{
-                background: "transparent",
-                border: `1px solid ${t.border}`,
-                color: t.textMuted,
+                background: isMobile ? "rgba(255,255,255,0.1)" : "transparent",
+                border: isMobile
+                  ? "1px solid rgba(255,255,255,0.15)"
+                  : `1px solid ${t.border}`,
+                color: isMobile ? "rgba(255,255,255,0.85)" : t.textMuted,
                 cursor: "pointer",
                 padding: "6px",
                 display: "flex",
@@ -786,17 +861,6 @@ export default function ViewScoresScreen() {
                 borderRadius: 6,
                 transition: "all 0.2s ease",
               }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background =
-                  t.surfaceAlt;
-                (e.currentTarget as HTMLButtonElement).style.color = t.text;
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background =
-                  "transparent";
-                (e.currentTarget as HTMLButtonElement).style.color =
-                  t.textMuted;
-              }}
               title="Back"
             >
               <div style={{ width: 18, height: 18 }}>{Icons.back}</div>
@@ -804,9 +868,9 @@ export default function ViewScoresScreen() {
             <div>
               <div
                 style={{
-                  fontSize: 20,
+                  fontSize: isMobile ? 16 : 20,
                   fontWeight: 700,
-                  color: t.text,
+                  color: isMobile ? "#FFFFFF" : t.text,
                   letterSpacing: "-0.5px",
                 }}
               >
@@ -815,7 +879,7 @@ export default function ViewScoresScreen() {
               <div
                 style={{
                   fontSize: 13,
-                  color: t.textMuted,
+                  color: isMobile ? "rgba(255,255,255,0.65)" : t.textMuted,
                   marginTop: 2,
                   fontWeight: 400,
                 }}
@@ -826,41 +890,60 @@ export default function ViewScoresScreen() {
             </div>
           </div>
 
-          <button
-            onClick={() => window.print()}
-            style={{
-              background: t.surface,
-              border: `1px solid ${t.border}`,
-              borderRadius: 6,
-              padding: "8px 14px",
-              color: t.textSub,
-              fontSize: 13,
-              fontWeight: 500,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              transition: "all 0.2s ease",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background =
-                t.surfaceAlt;
-              (e.currentTarget as HTMLButtonElement).style.borderColor =
-                t.textMuted;
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background =
-                t.surface;
-              (e.currentTarget as HTMLButtonElement).style.borderColor =
-                t.border;
-            }}
-          >
-            <div style={{ width: 16, height: 16 }}>{Icons.download}</div>
-            Print View
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={() => window.print()}
+              style={{
+                background: isMobile ? "rgba(255,255,255,0.1)" : t.surface,
+                border: isMobile
+                  ? "1px solid rgba(255,255,255,0.15)"
+                  : `1px solid ${t.border}`,
+                borderRadius: 6,
+                padding: isMobile ? "8px" : "8px 14px",
+                color: isMobile ? "rgba(255,255,255,0.85)" : t.textSub,
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                transition: "all 0.2s ease",
+                minWidth: isMobile ? 36 : "auto",
+                justifyContent: "center",
+              }}
+            >
+              <div style={{ width: 16, height: 16 }}>{Icons.download}</div>
+              {!isMobile && "Print View"}
+            </button>
+            <button
+              onClick={() => setShowAIModal(true)}
+              style={{
+                background: isMobile ? "rgba(255,255,255,0.15)" : t.accent,
+                border: isMobile ? "1px solid rgba(255,255,255,0.2)" : "none",
+                borderRadius: 6,
+                padding: isMobile ? "8px 10px" : "8px 14px",
+                color: "#fff",
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                transition: "all 0.2s ease",
+              }}
+            >
+              🤖{!isMobile && " AI Messages"}
+            </button>
+          </div>
         </header>
 
-        <main style={{ flex: 1, padding: "24px 32px", overflowY: "auto" }}>
+        <main
+          style={{
+            flex: 1,
+            padding: isMobile ? "12px" : "24px 32px",
+            overflowY: "auto",
+          }}
+        >
           {/* Professional Underline Tabs */}
           <div
             style={{
@@ -876,7 +959,7 @@ export default function ViewScoresScreen() {
                 onClick={() => setViewType(view)}
                 style={{
                   padding: "0 4px 12px 4px",
-                  fontSize: 13,
+                  fontSize: isMobile ? 12 : 13,
                   fontWeight: 600,
                   border: "none",
                   background: "transparent",
@@ -889,9 +972,10 @@ export default function ViewScoresScreen() {
                   transition: "all 0.2s ease",
                   display: "flex",
                   alignItems: "center",
-                  gap: 8,
+                  gap: isMobile ? 4 : 8,
                   textTransform: "capitalize",
                   marginBottom: "-1px",
+                  whiteSpace: "nowrap",
                 }}
               >
                 <div style={{ width: 16, height: 16 }}>
@@ -901,7 +985,13 @@ export default function ViewScoresScreen() {
                       ? Icons.subject
                       : Icons.user}
                 </div>
-                {view} View
+                {isMobile
+                  ? view === "table"
+                    ? "Table"
+                    : view === "subject"
+                      ? "Subject"
+                      : "Learner"
+                  : `${view} View`}
               </button>
             ))}
           </div>
@@ -1066,45 +1156,153 @@ export default function ViewScoresScreen() {
           )}
 
           {/* TABLE VIEW */}
-          {!loading && filteredScores.length > 0 && viewType === "table" && (
-            <div
-              style={{
-                background: t.surface,
-                border: `1px solid ${t.border}`,
-                borderRadius: 8,
-                overflowX: "auto",
-              }}
-            >
-              <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  textAlign: "left",
-                }}
+          {!loading &&
+            filteredScores.length > 0 &&
+            viewType === "table" &&
+            (isMobile ? (
+              // Mobile: Card per learner
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 10 }}
               >
-                <thead>
-                  <tr
-                    style={{
-                      background: t.surfaceAlt,
-                      borderBottom: `1px solid ${t.border}`,
-                    }}
-                  >
-                    <th
+                {classLearners.map((learner) => {
+                  const avg = calculateLearnerAverage(learner.id!);
+                  const avgInfo = getScoreColorInfo(avg, 100);
+                  return (
+                    <div
+                      key={learner.id}
                       style={{
-                        fontSize: 11,
-                        fontWeight: 600,
-                        color: t.textMuted,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                        padding: "12px 16px",
-                        minWidth: 160,
+                        background: t.surface,
+                        border: `1px solid ${t.border}`,
+                        borderRadius: 12,
+                        padding: "14px",
                       }}
                     >
-                      Learner Name
-                    </th>
-                    {classSubjects.map((subject) => (
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: 10,
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: 14,
+                            fontWeight: 700,
+                            color: t.text,
+                          }}
+                        >
+                          {learner.name}
+                        </div>
+                        <div
+                          style={{
+                            background: avgInfo.bg,
+                            color: avgInfo.text,
+                            border: `1px solid ${avgInfo.border}`,
+                            borderRadius: 6,
+                            padding: "3px 10px",
+                            fontSize: 12,
+                            fontWeight: 700,
+                          }}
+                        >
+                          AVG: {avg}%
+                        </div>
+                      </div>
+                      <div
+                        style={{ display: "flex", flexWrap: "wrap", gap: 6 }}
+                      >
+                        {classSubjects.map((subject) => {
+                          const score = getScore(learner.id!, subject.id!);
+                          const sInfo = getScoreColorInfo(
+                            score,
+                            subject.maxMark || 100,
+                          );
+                          return (
+                            <button
+                              key={subject.id}
+                              onClick={() => {
+                                setEditingScore({
+                                  learnerId: learner.id!,
+                                  subjectId: subject.id!,
+                                  currentScore: score || 0,
+                                });
+                                setEditValue(score?.toString() || "");
+                              }}
+                              style={{
+                                background: sInfo.bg,
+                                color: sInfo.text,
+                                border: `1px solid ${sInfo.border}`,
+                                borderRadius: 6,
+                                padding: "4px 8px",
+                                fontSize: 11,
+                                fontWeight: 600,
+                                cursor: "pointer",
+                              }}
+                            >
+                              {subject.subjectName.substring(0, 3)}:{" "}
+                              {score ?? "—"}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div
+                style={{
+                  background: t.surface,
+                  border: `1px solid ${t.border}`,
+                  borderRadius: 8,
+                  overflowX: "auto",
+                }}
+              >
+                <table
+                  style={{
+                    width: "100%",
+                    borderCollapse: "collapse",
+                    textAlign: "left",
+                  }}
+                >
+                  <thead>
+                    <tr
+                      style={{
+                        background: t.surfaceAlt,
+                        borderBottom: `1px solid ${t.border}`,
+                      }}
+                    >
                       <th
-                        key={subject.id}
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: t.textMuted,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.5px",
+                          padding: "12px 16px",
+                          minWidth: 160,
+                        }}
+                      >
+                        Learner Name
+                      </th>
+                      {classSubjects.map((subject) => (
+                        <th
+                          key={subject.id}
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: t.textMuted,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.5px",
+                            padding: "12px 16px",
+                            textAlign: "center",
+                            minWidth: 80,
+                          }}
+                        >
+                          {subject.subjectName.substring(0, 3)}
+                        </th>
+                      ))}
+                      <th
                         style={{
                           fontSize: 11,
                           fontWeight: 600,
@@ -1116,116 +1314,106 @@ export default function ViewScoresScreen() {
                           minWidth: 80,
                         }}
                       >
-                        {subject.subjectName.substring(0, 3)}
+                        AVG
                       </th>
-                    ))}
-                    <th
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 600,
-                        color: t.textMuted,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                        padding: "12px 16px",
-                        textAlign: "center",
-                        minWidth: 80,
-                      }}
-                    >
-                      AVG
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {classLearners.map((learner) => (
-                    <tr
-                      key={learner.id}
-                      style={{
-                        borderBottom: `1px solid ${t.borderSub}`,
-                        transition: "background-color 0.2s",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = t.surfaceAlt;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                      }}
-                    >
-                      <td
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {classLearners.map((learner) => (
+                      <tr
+                        key={learner.id}
                         style={{
-                          fontSize: 13,
-                          fontWeight: 500,
-                          color: t.text,
-                          padding: "12px 16px",
+                          borderBottom: `1px solid ${t.borderSub}`,
+                          transition: "background-color 0.2s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = t.surfaceAlt;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = "transparent";
                         }}
                       >
-                        {learner.name}
-                      </td>
-                      {classSubjects.map((subject) => {
-                        const score = getScore(learner.id!, subject.id!);
-                        const sInfo = getScoreColorInfo(
-                          score,
-                          subject.maxMark || 100,
-                        );
-                        return (
-                          <td
-                            key={subject.id}
-                            style={{ padding: "8px 12px", textAlign: "center" }}
-                          >
-                            <button
-                              onClick={() => {
-                                setEditingScore({
-                                  learnerId: learner.id!,
-                                  subjectId: subject.id!,
-                                  currentScore: score || 0,
-                                });
-                                setEditValue(score?.toString() || "");
-                              }}
-                              style={{
-                                background: "transparent",
-                                color: sInfo.text,
-                                padding: "4px 8px",
-                                borderRadius: 4,
-                                border: `1px solid transparent`,
-                                cursor: "pointer",
-                                fontSize: 13,
-                                fontWeight: 500,
-                                minWidth: 40,
-                                transition: "all 0.15s ease",
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background = sInfo.bg;
-                                e.currentTarget.style.borderColor =
-                                  sInfo.border;
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background =
-                                  "transparent";
-                                e.currentTarget.style.borderColor =
-                                  "transparent";
-                              }}
-                            >
-                              {score !== undefined ? score : "—"}
-                            </button>
-                          </td>
-                        );
-                      })}
-                      <td style={{ padding: "8px 12px", textAlign: "center" }}>
-                        <span
+                        <td
                           style={{
                             fontSize: 13,
-                            fontWeight: 700,
-                            color: t.textSub,
+                            fontWeight: 500,
+                            color: t.text,
+                            padding: "12px 16px",
                           }}
                         >
-                          {calculateLearnerAverage(learner.id!)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                          {learner.name}
+                        </td>
+                        {classSubjects.map((subject) => {
+                          const score = getScore(learner.id!, subject.id!);
+                          const sInfo = getScoreColorInfo(
+                            score,
+                            subject.maxMark || 100,
+                          );
+                          return (
+                            <td
+                              key={subject.id}
+                              style={{
+                                padding: "8px 12px",
+                                textAlign: "center",
+                              }}
+                            >
+                              <button
+                                onClick={() => {
+                                  setEditingScore({
+                                    learnerId: learner.id!,
+                                    subjectId: subject.id!,
+                                    currentScore: score || 0,
+                                  });
+                                  setEditValue(score?.toString() || "");
+                                }}
+                                style={{
+                                  background: "transparent",
+                                  color: sInfo.text,
+                                  padding: "4px 8px",
+                                  borderRadius: 4,
+                                  border: `1px solid transparent`,
+                                  cursor: "pointer",
+                                  fontSize: 13,
+                                  fontWeight: 500,
+                                  minWidth: 40,
+                                  transition: "all 0.15s ease",
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = sInfo.bg;
+                                  e.currentTarget.style.borderColor =
+                                    sInfo.border;
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background =
+                                    "transparent";
+                                  e.currentTarget.style.borderColor =
+                                    "transparent";
+                                }}
+                              >
+                                {score !== undefined ? score : "—"}
+                              </button>
+                            </td>
+                          );
+                        })}
+                        <td
+                          style={{ padding: "8px 12px", textAlign: "center" }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 13,
+                              fontWeight: 700,
+                              color: t.textSub,
+                            }}
+                          >
+                            {calculateLearnerAverage(learner.id!)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
 
           {/* SUBJECT VIEW */}
           {!loading &&
@@ -1832,6 +2020,286 @@ export default function ViewScoresScreen() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* AI Communication Modal */}
+      {showAIModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 2000,
+          }}
+          onClick={() => setShowAIModal(false)}
+        >
+          <div
+            style={{
+              background: t.surface,
+              borderRadius: 12,
+              padding: "24px",
+              maxWidth: 500,
+              width: "90%",
+              maxHeight: "80vh",
+              overflowY: "auto",
+              boxShadow: `0 20px 40px rgba(0, 0, 0, 0.3)`,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 20,
+              }}
+            >
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: t.text }}>
+                🤖 AI Communication Assistant
+              </h2>
+              <button
+                onClick={() => setShowAIModal(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: 20,
+                  cursor: "pointer",
+                  color: t.textMuted,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: t.textMuted,
+                  textTransform: "uppercase",
+                  display: "block",
+                  marginBottom: 8,
+                }}
+              >
+                Select Learner
+              </label>
+              <select
+                value={aiLearner || ""}
+                onChange={(e) =>
+                  setAiLearner(e.target.value ? parseInt(e.target.value) : null)
+                }
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: 6,
+                  border: `1px solid ${t.border}`,
+                  background: t.surfaceAlt,
+                  color: t.text,
+                  fontSize: 13,
+                  fontWeight: 500,
+                }}
+              >
+                <option value="">Choose a learner...</option>
+                {classLearners.map((learner) => {
+                  const avg = calculateLearnerAverage(learner.id!);
+                  return (
+                    <option key={learner.id} value={learner.id}>
+                      {learner.name} - Avg: {avg}%
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            {aiLearner && (
+              <div
+                style={{
+                  background: t.surfaceAlt,
+                  borderRadius: 8,
+                  padding: 12,
+                  marginBottom: 16,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: t.textMuted,
+                    marginBottom: 8,
+                  }}
+                >
+                  Learner Scores:
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {classSubjects.map((subject) => {
+                    const score = getScore(aiLearner, subject.id!);
+                    const sInfo = getScoreColorInfo(
+                      score,
+                      subject.maxMark || 100,
+                    );
+                    return (
+                      <div
+                        key={subject.id}
+                        style={{
+                          background: sInfo.bg,
+                          color: sInfo.text,
+                          padding: "6px 10px",
+                          borderRadius: 4,
+                          fontSize: 11,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {subject.subjectName.substring(0, 4)}: {score || "—"}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div style={{ marginBottom: 16 }}>
+              <label
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: t.textMuted,
+                  textTransform: "uppercase",
+                  display: "block",
+                  marginBottom: 8,
+                }}
+              >
+                Message Tone
+              </label>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 8,
+                }}
+              >
+                <button
+                  onClick={() => setAiMessage("positive")}
+                  style={{
+                    padding: "10px",
+                    borderRadius: 6,
+                    border: `1px solid ${
+                      aiMessage === "positive" ? t.accent : t.border
+                    }`,
+                    background:
+                      aiMessage === "positive" ? t.accentBg : t.surface,
+                    color: aiMessage === "positive" ? t.accent : t.text,
+                    cursor: "pointer",
+                    fontSize: 12,
+                    fontWeight: 600,
+                  }}
+                >
+                  ✓ Positive
+                </button>
+                <button
+                  onClick={() => setAiMessage("urgent")}
+                  style={{
+                    padding: "10px",
+                    borderRadius: 6,
+                    border: `1px solid ${
+                      aiMessage === "urgent" ? t.accent : t.border
+                    }`,
+                    background: aiMessage === "urgent" ? t.accentBg : t.surface,
+                    color: aiMessage === "urgent" ? t.accent : t.text,
+                    cursor: "pointer",
+                    fontSize: 12,
+                    fontWeight: 600,
+                  }}
+                >
+                  ⚠️ Urgent
+                </button>
+              </div>
+            </div>
+
+            <button
+              onClick={() => generateAIMessage()}
+              disabled={!aiLearner || !aiMessage || aiLoading}
+              style={{
+                width: "100%",
+                padding: "12px",
+                borderRadius: 6,
+                border: "none",
+                background:
+                  !aiLearner || !aiMessage || aiLoading ? t.border : t.accent,
+                color: "#fff",
+                cursor:
+                  !aiLearner || !aiMessage || aiLoading
+                    ? "not-allowed"
+                    : "pointer",
+                fontSize: 14,
+                fontWeight: 600,
+                marginBottom: 12,
+              }}
+            >
+              {aiLoading ? "Generating..." : "Generate Message"}
+            </button>
+
+            {aiGeneratedMessage && (
+              <div
+                style={{
+                  background: t.surfaceAlt,
+                  borderRadius: 8,
+                  padding: 12,
+                  marginBottom: 12,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: t.textMuted,
+                    marginBottom: 8,
+                  }}
+                >
+                  Generated Message:
+                </div>
+                <textarea
+                  value={aiGeneratedMessage}
+                  onChange={(e) => setAiGeneratedMessage(e.target.value)}
+                  style={{
+                    width: "100%",
+                    minHeight: 100,
+                    padding: "10px",
+                    borderRadius: 6,
+                    border: `1px solid ${t.border}`,
+                    background: t.surface,
+                    color: t.text,
+                    fontSize: 12,
+                    fontFamily: "inherit",
+                    resize: "vertical",
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(aiGeneratedMessage);
+                    alert("Message copied to clipboard!");
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: 6,
+                    border: `1px solid ${t.border}`,
+                    background: t.surface,
+                    color: t.text,
+                    cursor: "pointer",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    marginTop: 8,
+                  }}
+                >
+                  📋 Copy Message
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
